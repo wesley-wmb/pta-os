@@ -4,15 +4,12 @@ import { Button } from '@/components/ui/button';
 
 export function QueryError({ onRetry }: { onRetry: () => void }) {
   return (
-    <div
-      role="alert"
-      className="mx-auto flex max-w-md flex-col items-center px-6 py-20 text-center"
-    >
+    <div role="alert" className="max-w-lg px-1 py-14">
       <CircleAlert aria-hidden="true" className="size-5 text-destructive" />
-      <h2 className="mt-4 text-base font-semibold">
-        Não foi possível carregar as demandas.
+      <h2 className="mt-4 text-lg font-semibold leading-6">
+        A lista de demandas não carregou.
       </h2>
-      <p className="mt-1 text-sm text-muted-foreground">
+      <p className="mt-2 text-[15px] leading-[23px] text-muted-foreground">
         Seus dados não foram alterados.
       </p>
       <Button
@@ -35,17 +32,17 @@ export function EmptyTasks({
   onClear?: () => void;
 }) {
   return (
-    <div className="mx-auto flex max-w-md flex-col items-center px-6 py-20 text-center">
+    <div className="max-w-lg px-1 py-14">
       <Inbox aria-hidden="true" className="size-5 text-muted-foreground" />
-      <h2 className="mt-4 text-base font-semibold">
+      <h2 className="mt-4 text-lg font-semibold leading-6">
         {filtered
-          ? 'Nenhuma demanda corresponde a estes filtros.'
-          : 'Nenhuma demanda criada.'}
+          ? 'Nenhuma demanda corresponde aos filtros'
+          : 'Crie a primeira demanda'}
       </h2>
-      <p className="mt-1 text-sm leading-6 text-muted-foreground">
+      <p className="mt-2 text-[15px] leading-[23px] text-muted-foreground">
         {filtered
-          ? 'Ajuste os filtros para ampliar os resultados.'
-          : 'Crie a primeira demanda para começar a organizar a operação.'}
+          ? 'Revise os filtros ou limpe a seleção.'
+          : 'Registre a entrega, defina o prazo e atribua um responsável.'}
       </p>
       {filtered && onClear ? (
         <Button

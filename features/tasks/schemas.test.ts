@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { authFormSchema, signUpSchema } from '@/features/auth/schemas';
 
 import { newTaskSchema } from './schemas';
+import { createEmptyTaskDescription } from './rich-text';
 
 describe('newTaskSchema', () => {
   const valid = {
@@ -11,6 +12,11 @@ describe('newTaskSchema', () => {
     dueDate: '2026-08-24',
     dueTime: '14:30',
     primaryAssigneeId: 'none',
+    typeId: 'none',
+    productId: 'none',
+    eventId: 'none',
+    description: createEmptyTaskDescription(),
+    blockedReason: '',
   };
 
   it('accepts a date-only task', () => {

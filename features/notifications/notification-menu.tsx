@@ -3,18 +3,16 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Bell, CheckCircle2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { z } from 'zod';
 
 import { Button } from '@/components/ui/button';
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
 import { createClient } from '@/lib/supabase/client';
 import { cn } from '@/lib/utils';
 
@@ -44,6 +42,7 @@ const notificationKey = (workspaceId: string) =>
 export function NotificationMenu({ workspaceId }: { workspaceId: string }) {
   const router = useRouter();
   const queryClient = useQueryClient();
+  const [open, setOpen] = useState(false);
   const queryKey = notificationKey(workspaceId);
   const query = useQuery({
     queryKey,
@@ -67,7 +66,7 @@ export function NotificationMenu({ workspaceId }: { workspaceId: string }) {
   useEffect(() => {
     const supabase = createClient();
     const channel = supabase
-      .channel(`notifications:${workspaceId}`)
+      .channel(`notifications:${workspaceId}:${crypto.randomUUID()}`)
       .on(
         'postgres_changes',
         {
@@ -102,11 +101,25 @@ export function NotificationMenu({ workspaceId }: { workspaceId: string }) {
     await markAsRead(notification);
     if (notification.entity_type === 'task')
       router.push(`/tarefa/${notification.entity_id}`, { scroll: false });
+    setOpen(false);
+  }
+
+  async function markAllAsRead() {
+    const { error } = await createClient()
+      .from('notifications')
+      .update({ read_at: new Date().toISOString() })
+      .eq('workspace_id', workspaceId)
+      .is('read_at', null);
+    if (error) {
+      toast.error('Não foi possível marcar todas como lidas.');
+      return;
+    }
+    await queryClient.invalidateQueries({ queryKey });
   }
 
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
         <Button
           type="button"
           variant="ghost"
@@ -117,20 +130,28 @@ export function NotificationMenu({ workspaceId }: { workspaceId: string }) {
           <Bell aria-hidden="true" />
           {unread ? (
             <span
-              className="absolute right-1.5 top-1.5 size-2 rounded-full bg-pta-lime ring-1 ring-foreground/20"
+              className="absolute right-1.5 top-1.5 size-2 rounded-full bg-primary shadow-[0_0_0_3px_color-mix(in_srgb,var(--primary)_14%,transparent)] ring-1 ring-background"
               aria-hidden="true"
             />
           ) : null}
         </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent
+      </PopoverTrigger>
+      <PopoverContent
         align="end"
-        className="w-[min(360px,calc(100vw-24px))] p-0"
+        className="w-[min(360px,calc(100vw-24px))] gap-0 overflow-hidden rounded-lg border p-0 shadow-[0_18px_50px_rgb(15_18_12/16%)]"
       >
-        <DropdownMenuLabel className="px-3 py-3">
-          Notificações
-        </DropdownMenuLabel>
-        <DropdownMenuSeparator className="m-0" />
+        <div className="flex min-h-12 items-center justify-between gap-3 border-b px-4 py-2.5">
+          <span className="text-sm font-semibold">Notificações</span>
+          {unread ? (
+            <button
+              type="button"
+              onClick={() => void markAllAsRead()}
+              className="min-h-8 rounded-lg px-2 text-xs font-semibold text-muted-foreground transition-colors hover:bg-pta-blue/[0.07] hover:text-pta-blue"
+            >
+              Marcar todas como lidas
+            </button>
+          ) : null}
+        </div>
         {query.isPending ? (
           <p className="px-3 py-8 text-center text-xs text-muted-foreground">
             Carregando…
@@ -158,7 +179,7 @@ export function NotificationMenu({ workspaceId }: { workspaceId: string }) {
               aria-hidden="true"
               className="mx-auto size-5 text-muted-foreground"
             />
-            <p className="mt-2 text-sm">Tudo em dia.</p>
+            <p className="mt-2 text-sm">Nenhuma notificação.</p>
           </div>
         ) : null}
         {notifications.map((notification) => (
@@ -167,14 +188,14 @@ export function NotificationMenu({ workspaceId }: { workspaceId: string }) {
             key={notification.id}
             onClick={() => void openNotification(notification)}
             className={cn(
-              'block w-full border-b px-3 py-3 text-left text-sm transition-colors last:border-0 hover:bg-muted',
-              !notification.read_at && 'bg-accent/35',
+              'block w-full border-b px-4 py-3 text-left text-sm transition-[background-color,box-shadow] last:border-0 hover:bg-accent/60 hover:shadow-[inset_2px_0_0_color-mix(in_srgb,var(--primary)_68%,transparent)] focus-visible:bg-accent/60',
+              !notification.read_at && 'bg-primary/[0.065]',
             )}
           >
             <span className="flex items-center gap-2 font-medium">
               {!notification.read_at ? (
                 <span
-                  className="size-1.5 rounded-full bg-pta-lime ring-1 ring-foreground/20"
+                  className="size-1.5 rounded-full bg-primary shadow-[0_0_0_3px_color-mix(in_srgb,var(--primary)_12%,transparent)]"
                   aria-label="Não lida"
                 />
               ) : null}
@@ -187,7 +208,7 @@ export function NotificationMenu({ workspaceId }: { workspaceId: string }) {
             ) : null}
             <time
               dateTime={notification.created_at}
-              className="mt-1 block text-[11px] text-muted-foreground"
+              className="mt-1 block text-xs text-muted-foreground"
             >
               {new Intl.DateTimeFormat('pt-BR', {
                 dateStyle: 'short',
@@ -196,7 +217,7 @@ export function NotificationMenu({ workspaceId }: { workspaceId: string }) {
             </time>
           </button>
         ))}
-      </DropdownMenuContent>
-    </DropdownMenu>
+      </PopoverContent>
+    </Popover>
   );
 }

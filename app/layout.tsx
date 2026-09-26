@@ -9,7 +9,8 @@ export const metadata: Metadata = {
     default: 'PTA OS',
     template: '%s · PTA OS',
   },
-  description: 'Demandas, semana e contexto operacional em um só lugar.',
+  description: 'Tarefas, projetos, prazos e responsáveis da equipe.',
+  icons: { icon: '/favicon.svg' },
 };
 
 export default function RootLayout({

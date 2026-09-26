@@ -1,7 +1,8 @@
-import { format, isToday, isTomorrow, parseISO } from 'date-fns';
+import { addDays, format, isToday, isTomorrow, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
 import type { TaskPriority, TaskStatusCategory } from './types';
+import { dateFromKey, toDateKey } from './date-utils';
 
 export const priorityLabels: Record<TaskPriority, string> = {
   low: 'Baixa',
@@ -10,23 +11,31 @@ export const priorityLabels: Record<TaskPriority, string> = {
   urgent: 'Urgente',
 };
 
-export function formatDueDate(value: string | null) {
+export function formatDueDate(value: string | null, todayKey?: string) {
   if (!value) return 'Sem prazo';
+  if (todayKey) {
+    if (value === todayKey) return 'Hoje';
+    if (value === toDateKey(addDays(dateFromKey(todayKey), 1))) return 'Amanhã';
+  }
   const date = parseISO(value);
-  if (isToday(date)) return 'Hoje';
-  if (isTomorrow(date)) return 'Amanhã';
+  if (!todayKey && isToday(date)) return 'Hoje';
+  if (!todayKey && isTomorrow(date)) return 'Amanhã';
   return format(date, "d 'de' MMM", { locale: ptBR });
 }
 
 export function statusTone(category: TaskStatusCategory) {
   return {
-    backlog: 'bg-stone-100 text-stone-700',
-    todo: 'bg-stone-100 text-stone-700',
-    in_progress: 'bg-blue-50 text-blue-700',
-    review: 'bg-violet-50 text-violet-700',
-    blocked: 'bg-red-50 text-red-700',
-    done: 'bg-emerald-50 text-emerald-700',
-    cancelled: 'bg-stone-100 text-stone-500',
+    backlog:
+      'bg-[#efefeb] text-[#555950] dark:bg-[#2b2e29] dark:text-[#d4d8d0]',
+    todo: 'bg-[#efefeb] text-[#555950] dark:bg-[#2b2e29] dark:text-[#d4d8d0]',
+    in_progress:
+      'bg-[#eef3ff] text-[#315bb7] dark:bg-[#172745] dark:text-[#b9ceff]',
+    review: 'bg-[#f2efff] text-[#6549bc] dark:bg-[#29213f] dark:text-[#d4c5ff]',
+    blocked:
+      'bg-[#fff0f0] text-[#b52e2e] dark:bg-[#421f1f] dark:text-[#ffb9b5]',
+    done: 'bg-[#eaf8f1] text-[#18764a] dark:bg-[#17352a] dark:text-[#a9e7c9]',
+    cancelled:
+      'bg-[#efefeb] text-[#5f625c] dark:bg-[#2b2e29] dark:text-[#c7cbc3]',
   }[category];
 }
 

@@ -1,4 +1,4 @@
-# ADR 0002 — Tarefa como fonte única
+# ADR 0002: Tarefa como fonte única
 
 Status: aceito em 22 de agosto de 2026.
 

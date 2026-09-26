@@ -1,5 +1,8 @@
 import { defineConfig, devices } from '@playwright/test';
 
+const externalServer = process.env.PLAYWRIGHT_EXTERNAL_SERVER === '1';
+const baseURL = process.env.PLAYWRIGHT_BASE_URL ?? 'http://127.0.0.1:3100';
+
 export default defineConfig({
   testDir: './tests/e2e',
   fullyParallel: true,
@@ -7,18 +10,20 @@ export default defineConfig({
   retries: process.env.CI ? 2 : 0,
   reporter: [['html', { open: 'never' }], ['list']],
   use: {
-    baseURL: 'http://127.0.0.1:3100',
+    baseURL,
     trace: 'on-first-retry',
   },
-  webServer: {
-    command: 'pnpm dev --hostname 127.0.0.1 --port 3100',
-    url: 'http://127.0.0.1:3100/login',
-    reuseExistingServer: false,
-    env: {
-      NEXT_PUBLIC_SUPABASE_URL: '',
-      NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: '',
-    },
-  },
+  webServer: externalServer
+    ? undefined
+    : {
+        command: 'pnpm dev --hostname 127.0.0.1 --port 3100',
+        url: 'http://127.0.0.1:3100/login',
+        reuseExistingServer: false,
+        env: {
+          NEXT_PUBLIC_SUPABASE_URL: '',
+          NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: '',
+        },
+      },
   projects: [
     { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
     { name: 'mobile', use: { ...devices['Pixel 7'] } },

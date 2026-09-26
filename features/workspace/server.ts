@@ -1,117 +1,208 @@
 import 'server-only';
 
+import type { PostgrestError } from '@supabase/supabase-js';
+import { cookies } from 'next/headers';
+import { cache } from 'react';
+
 import { createClient } from '@/lib/supabase/server';
 
-import type { WorkspaceContext, WorkspaceRole } from './types';
+import {
+  ACTIVE_WORKSPACE_COOKIE,
+  resolveSelectedWorkspaceId,
+  workspaceIdSchema,
+} from './selection';
+import type {
+  AvailableWorkspace,
+  WorkspaceContext,
+  WorkspaceRole,
+} from './types';
 
-type MembershipRow = { workspace_id: string; role: WorkspaceRole };
-type ProfileRow = { id: string; full_name: string };
+type MembershipRow = {
+  workspace_id: string;
+  role: WorkspaceRole;
+  created_at: string;
+};
+type ProfileRow = { id: string; full_name: string; avatar_path: string | null };
+type WorkspaceRow = {
+  id: string;
+  name: string;
+  task_prefix: string;
+  timezone: string;
+};
 
-export async function getWorkspaceContext(): Promise<WorkspaceContext | null> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-    error: authError,
-  } = await supabase.auth.getUser();
+export const getWorkspaceContext = cache(
+  async (): Promise<WorkspaceContext | null> => {
+    const supabase = await createClient();
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
 
-  if (authError || !user) return null;
+    if (authError || !user) return null;
 
-  const [profileResult, membershipResult] = await Promise.all([
-    supabase
-      .from('profiles')
-      .select('id, full_name')
-      .eq('id', user.id)
-      .maybeSingle(),
-    supabase
-      .from('workspace_members')
-      .select('workspace_id, role, created_at')
-      .eq('user_id', user.id)
-      .eq('status', 'active')
-      .order('created_at', { ascending: true })
-      .limit(1)
-      .maybeSingle(),
-  ]);
+    const [profileResult, membershipsResult, cookieStore] = await Promise.all([
+      supabase
+        .from('profiles')
+        .select('id, full_name, avatar_path')
+        .eq('id', user.id)
+        .maybeSingle(),
+      supabase
+        .from('workspace_members')
+        .select('workspace_id, role, created_at')
+        .eq('user_id', user.id)
+        .eq('status', 'active')
+        .order('created_at', { ascending: true }),
+      cookies(),
+    ]);
 
-  if (profileResult.error || membershipResult.error) {
-    throw new Error('PTA_WORKSPACE_CONTEXT_UNAVAILABLE');
-  }
+    if (profileResult.error || membershipsResult.error) {
+      throwWorkspaceContextUnavailable('identity', [
+        profileResult.error,
+        membershipsResult.error,
+      ]);
+    }
 
-  const profile = profileResult.data as ProfileRow | null;
-  const membership = membershipResult.data as MembershipRow | null;
-  const baseUser = {
-    id: user.id,
-    fullName:
-      profile?.full_name ??
-      user.user_metadata.full_name ??
-      user.email?.split('@')[0] ??
-      'Usuário',
-  };
+    const profile = profileResult.data as ProfileRow | null;
+    const memberships = (membershipsResult.data ?? []) as MembershipRow[];
+    const baseUser = {
+      id: user.id,
+      fullName:
+        profile?.full_name ??
+        user.user_metadata.full_name ??
+        user.email?.split('@')[0] ??
+        'Usuário',
+      avatarUrl: profile?.avatar_path ?? null,
+    };
 
-  if (!membership) {
-    return { user: baseUser, workspace: null, members: [] };
-  }
+    if (!memberships.length) {
+      return emptyWorkspaceContext(baseUser);
+    }
 
-  const [workspaceResult, membersResult] = await Promise.all([
-    supabase
+    const membershipWorkspaceIds = memberships.map(
+      (membership) => membership.workspace_id,
+    );
+    const workspacesResult = await supabase
       .from('workspaces')
       .select('id, name, task_prefix, timezone')
-      .eq('id', membership.workspace_id)
-      .single(),
-    supabase
+      .in('id', membershipWorkspaceIds)
+      .is('archived_at', null);
+
+    if (workspacesResult.error) {
+      throwWorkspaceContextUnavailable('workspaces', [workspacesResult.error]);
+    }
+
+    const workspaceRows = (workspacesResult.data ?? []) as WorkspaceRow[];
+    const workspaceById = new Map(
+      workspaceRows.map((workspace) => [workspace.id, workspace]),
+    );
+    const availableWorkspaces = memberships.flatMap<AvailableWorkspace>(
+      (membership) => {
+        const workspace = workspaceById.get(membership.workspace_id);
+        return workspace
+          ? [{ id: workspace.id, name: workspace.name, role: membership.role }]
+          : [];
+      },
+    );
+    const requestedWorkspaceIdResult = workspaceIdSchema.safeParse(
+      cookieStore.get(ACTIVE_WORKSPACE_COOKIE)?.value,
+    );
+    const selectedWorkspaceId = resolveSelectedWorkspaceId(
+      membershipWorkspaceIds,
+      new Set(workspaceRows.map((workspace) => workspace.id)),
+      requestedWorkspaceIdResult.success
+        ? requestedWorkspaceIdResult.data
+        : null,
+    );
+
+    if (!selectedWorkspaceId) {
+      return emptyWorkspaceContext(baseUser);
+    }
+
+    const membership = memberships.find(
+      (candidate) => candidate.workspace_id === selectedWorkspaceId,
+    );
+    const workspace = workspaceById.get(selectedWorkspaceId);
+    if (!membership || !workspace) {
+      throwWorkspaceContextUnavailable('selection');
+    }
+
+    const membersResult = await supabase
       .from('workspace_members')
       .select('user_id, role')
-      .eq('workspace_id', membership.workspace_id)
-      .eq('status', 'active'),
-  ]);
+      .eq('workspace_id', selectedWorkspaceId)
+      .eq('status', 'active');
 
-  if (workspaceResult.error || membersResult.error) {
-    throw new Error('PTA_WORKSPACE_CONTEXT_UNAVAILABLE');
-  }
+    if (membersResult.error) {
+      throwWorkspaceContextUnavailable('members', [membersResult.error]);
+    }
 
-  const workspace = workspaceResult.data as {
-    id: string;
-    name: string;
-    task_prefix: string;
-    timezone: string;
-  } | null;
-  if (!workspace) throw new Error('PTA_WORKSPACE_CONTEXT_UNAVAILABLE');
+    const selectedMemberships = (membersResult.data ?? []) as Array<{
+      user_id: string;
+      role: WorkspaceRole;
+    }>;
+    const memberIds = selectedMemberships.map((item) => item.user_id);
+    const profilesResult = memberIds.length
+      ? await supabase
+          .from('profiles')
+          .select('id, full_name, avatar_path')
+          .in('id', memberIds)
+          .eq('is_active', true)
+      : { data: [] as ProfileRow[], error: null };
+    if (profilesResult.error) {
+      throwWorkspaceContextUnavailable('member-profiles', [
+        profilesResult.error,
+      ]);
+    }
 
-  const memberships = (membersResult.data ?? []) as Array<{
-    user_id: string;
-    role: WorkspaceRole;
-  }>;
-  const memberIds = memberships.map((item) => item.user_id);
-  const profilesResult = memberIds.length
-    ? await supabase
-        .from('profiles')
-        .select('id, full_name')
-        .in('id', memberIds)
-        .eq('is_active', true)
-    : { data: [] as ProfileRow[], error: null };
-  if (profilesResult.error)
-    throw new Error('PTA_WORKSPACE_CONTEXT_UNAVAILABLE');
-  const profilesData = profilesResult.data;
-  const profiles = (profilesData ?? []) as ProfileRow[];
-  const profileById = new Map(profiles.map((item) => [item.id, item]));
-  const members = memberships.flatMap((item) => {
-    if (item.role === 'viewer') return [];
-    const memberProfile = profileById.get(item.user_id);
-    return memberProfile
-      ? [{ id: item.user_id, fullName: memberProfile.full_name }]
-      : [];
+    const profiles = (profilesResult.data ?? []) as ProfileRow[];
+    const profileById = new Map(profiles.map((item) => [item.id, item]));
+    const members = selectedMemberships.flatMap((item) => {
+      if (item.role === 'viewer') return [];
+      const memberProfile = profileById.get(item.user_id);
+      return memberProfile
+        ? [{ id: item.user_id, fullName: memberProfile.full_name }]
+        : [];
+    });
+
+    return {
+      user: baseUser,
+      workspace: {
+        id: workspace.id,
+        name: workspace.name,
+        taskPrefix: workspace.task_prefix,
+        timezone: workspace.timezone,
+        role: membership.role,
+      },
+      availableWorkspaces,
+      members,
+    };
+  },
+);
+
+function throwWorkspaceContextUnavailable(
+  stage: string,
+  errors: Array<PostgrestError | null> = [],
+): never {
+  console.error('PTA_WORKSPACE_CONTEXT_UNAVAILABLE', {
+    stage,
+    errors: errors.filter(Boolean).map((error) => ({
+      code: error?.code,
+      message: error?.message,
+      details: error?.details,
+      hint: error?.hint,
+    })),
   });
 
+  throw new Error('PTA_WORKSPACE_CONTEXT_UNAVAILABLE');
+}
+
+function emptyWorkspaceContext(
+  user: WorkspaceContext['user'],
+): WorkspaceContext {
   return {
-    user: baseUser,
-    workspace: workspace
-      ? {
-          id: workspace.id,
-          name: workspace.name,
-          taskPrefix: workspace.task_prefix,
-          timezone: workspace.timezone,
-          role: membership.role,
-        }
-      : null,
-    members,
+    user,
+    workspace: null,
+    availableWorkspaces: [],
+    members: [],
   };
 }

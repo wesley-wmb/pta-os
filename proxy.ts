@@ -1,9 +1,11 @@
 import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
 
+import { safeWorkspaceReturnPath } from '@/features/auth/return-path';
 import { getPublicSupabaseConfig } from '@/lib/supabase/config';
 
-const publicRoutes = new Set(['/login']);
+const publicRoutes = new Set(['/login', '/recuperar-senha', '/auth/confirm']);
+const invitationRoutePattern = /^\/convite\/[0-9a-f]{64}$/i;
 
 export async function proxy(request: NextRequest) {
   const config = getPublicSupabaseConfig();
@@ -43,7 +45,9 @@ export async function proxy(request: NextRequest) {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  const isPublicRoute = publicRoutes.has(request.nextUrl.pathname);
+  const isPublicRoute =
+    publicRoutes.has(request.nextUrl.pathname) ||
+    invitationRoutePattern.test(request.nextUrl.pathname);
 
   function redirectWithCookies(url: URL) {
     const redirectResponse = NextResponse.redirect(url);
@@ -56,14 +60,18 @@ export async function proxy(request: NextRequest) {
   if (!user && !isPublicRoute) {
     const loginUrl = request.nextUrl.clone();
     loginUrl.pathname = '/login';
-    loginUrl.searchParams.set('retorno', request.nextUrl.pathname);
+    loginUrl.searchParams.set(
+      'retorno',
+      `${request.nextUrl.pathname}${request.nextUrl.search}`,
+    );
     return redirectWithCookies(loginUrl);
   }
 
   if (user && request.nextUrl.pathname === '/login') {
-    const startUrl = request.nextUrl.clone();
-    startUrl.pathname = '/inicio';
-    startUrl.search = '';
+    const returnPath = safeWorkspaceReturnPath(
+      request.nextUrl.searchParams.get('retorno'),
+    );
+    const startUrl = new URL(returnPath, request.url);
     return redirectWithCookies(startUrl);
   }
 

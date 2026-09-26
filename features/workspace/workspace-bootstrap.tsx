@@ -42,7 +42,7 @@ export function WorkspaceBootstrap({ fullName }: { fullName: string }) {
       return;
     }
 
-    toast.success('Workspace pronto.');
+    toast.success('Workspace criado.');
     router.refresh();
   }
 
@@ -59,11 +59,10 @@ export function WorkspaceBootstrap({ fullName }: { fullName: string }) {
           id="workspace-title"
           className="text-balance text-3xl font-semibold tracking-[-0.035em]"
         >
-          Vamos preparar seu espaço, {firstName(fullName)}.
+          Crie o workspace da PTA, {firstName(fullName)}.
         </h1>
         <p className="mt-3 text-sm leading-6 text-muted-foreground">
-          Isso cria o workspace e os status iniciais da sua operação. Você
-          poderá ajustar tudo depois.
+          Vamos criar o workspace e os status iniciais.
         </p>
         <form className="mt-8 space-y-5" onSubmit={form.handleSubmit(onSubmit)}>
           <div className="space-y-2">
@@ -73,9 +72,12 @@ export function WorkspaceBootstrap({ fullName }: { fullName: string }) {
               autoFocus
               {...form.register('name')}
               aria-invalid={Boolean(form.formState.errors.name)}
+              aria-describedby={
+                form.formState.errors.name ? 'workspace-name-error' : undefined
+              }
             />
             {form.formState.errors.name ? (
-              <p className="text-xs text-destructive">
+              <p id="workspace-name-error" className="text-xs text-destructive">
                 {form.formState.errors.name.message}
               </p>
             ) : null}

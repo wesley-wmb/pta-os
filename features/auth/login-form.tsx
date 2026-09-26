@@ -2,6 +2,7 @@
 
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Eye, EyeOff, LoaderCircle } from 'lucide-react';
+import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
@@ -12,14 +13,19 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { createClient } from '@/lib/supabase/client';
 
+import { safeWorkspaceReturnPath } from './return-path';
 import { authFormSchema, signUpSchema, type AuthFormInput } from './schemas';
 
 type AuthMode = 'sign-in' | 'sign-up';
 
-export function LoginForm() {
+export function LoginForm({ signUpEnabled }: { signUpEnabled: boolean }) {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [mode, setMode] = useState<AuthMode>('sign-in');
+  const [mode, setMode] = useState<AuthMode>(() =>
+    signUpEnabled && searchParams.get('modo') === 'cadastro'
+      ? 'sign-up'
+      : 'sign-in',
+  );
   const [showPassword, setShowPassword] = useState(false);
   const [formError, setFormError] = useState<string>();
   const [formNotice, setFormNotice] = useState<string>();
@@ -33,7 +39,7 @@ export function LoginForm() {
     setFormNotice(undefined);
     const supabase = createClient();
 
-    if (mode === 'sign-up') {
+    if (signUpEnabled && mode === 'sign-up') {
       const parsed = signUpSchema.safeParse(values);
       if (!parsed.success) {
         const issue = parsed.error.issues[0];
@@ -43,7 +49,12 @@ export function LoginForm() {
       const result = await supabase.auth.signUp({
         email: values.email,
         password: values.password,
-        options: { data: { full_name: parsed.data.fullName, locale: 'pt-BR' } },
+        options: {
+          data: { full_name: parsed.data.fullName, locale: 'pt-BR' },
+          emailRedirectTo: `${window.location.origin}/auth/confirm?next=${encodeURIComponent(
+            safeWorkspaceReturnPath(searchParams.get('retorno')),
+          )}`,
+        },
       });
 
       if (result.error) {
@@ -71,7 +82,7 @@ export function LoginForm() {
       }
     }
 
-    router.replace(safeReturnTo(searchParams.get('retorno')));
+    router.replace(safeWorkspaceReturnPath(searchParams.get('retorno')));
     router.refresh();
   }
 
@@ -96,9 +107,12 @@ export function LoginForm() {
             autoComplete="name"
             {...form.register('fullName')}
             aria-invalid={Boolean(form.formState.errors.fullName)}
+            aria-describedby={
+              form.formState.errors.fullName ? 'fullName-error' : undefined
+            }
           />
           {form.formState.errors.fullName ? (
-            <p className="text-xs text-destructive">
+            <p id="fullName-error" className="text-xs text-destructive">
               {form.formState.errors.fullName.message}
             </p>
           ) : null}
@@ -115,16 +129,29 @@ export function LoginForm() {
           placeholder="nome@empresa.com.br"
           {...form.register('email')}
           aria-invalid={Boolean(form.formState.errors.email)}
+          aria-describedby={
+            form.formState.errors.email ? 'email-error' : undefined
+          }
         />
         {form.formState.errors.email ? (
-          <p className="text-xs text-destructive">
+          <p id="email-error" className="text-xs text-destructive">
             {form.formState.errors.email.message}
           </p>
         ) : null}
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="password">Senha</Label>
+        <div className="flex items-center justify-between gap-4">
+          <Label htmlFor="password">Senha</Label>
+          {mode === 'sign-in' ? (
+            <Link
+              href="/recuperar-senha"
+              className="text-xs font-medium text-foreground underline decoration-border underline-offset-4 hover:decoration-foreground"
+            >
+              Esqueci minha senha
+            </Link>
+          ) : null}
+        </div>
         <div className="relative">
           <Input
             id="password"
@@ -135,6 +162,9 @@ export function LoginForm() {
             className="pr-11"
             {...form.register('password')}
             aria-invalid={Boolean(form.formState.errors.password)}
+            aria-describedby={
+              form.formState.errors.password ? 'password-error' : undefined
+            }
           />
           <button
             type="button"
@@ -150,7 +180,7 @@ export function LoginForm() {
           </button>
         </div>
         {form.formState.errors.password ? (
-          <p className="text-xs text-destructive">
+          <p id="password-error" className="text-xs text-destructive">
             {form.formState.errors.password.message}
           </p>
         ) : null}
@@ -165,6 +195,14 @@ export function LoginForm() {
       {formNotice ? (
         <Alert>
           <AlertDescription>{formNotice}</AlertDescription>
+        </Alert>
+      ) : null}
+
+      {searchParams.get('aviso') === 'senha-atualizada' ? (
+        <Alert>
+          <AlertDescription>
+            Senha atualizada. Entre com a nova senha.
+          </AlertDescription>
         </Alert>
       ) : null}
 
@@ -185,33 +223,20 @@ export function LoginForm() {
             : 'Criar conta'}
       </Button>
 
-      <p className="text-center text-sm text-muted-foreground">
-        {mode === 'sign-in' ? 'Primeiro acesso?' : 'Já possui uma conta?'}{' '}
-        <button
-          type="button"
-          className="font-medium text-foreground underline decoration-border underline-offset-4 hover:decoration-foreground"
-          onClick={() => changeMode(mode === 'sign-in' ? 'sign-up' : 'sign-in')}
-        >
-          {mode === 'sign-in' ? 'Criar conta' : 'Entrar'}
-        </button>
-      </p>
+      {signUpEnabled ? (
+        <p className="text-center text-sm text-muted-foreground">
+          {mode === 'sign-in' ? 'Primeiro acesso?' : 'Já possui uma conta?'}{' '}
+          <button
+            type="button"
+            className="font-medium text-foreground underline decoration-border underline-offset-4 hover:decoration-foreground"
+            onClick={() =>
+              changeMode(mode === 'sign-in' ? 'sign-up' : 'sign-in')
+            }
+          >
+            {mode === 'sign-in' ? 'Criar conta' : 'Entrar'}
+          </button>
+        </p>
+      ) : null}
     </form>
   );
-}
-
-function safeReturnTo(value: string | null) {
-  if (!value || value.startsWith('//') || value.includes('\\'))
-    return '/inicio';
-
-  try {
-    const origin = window.location.origin;
-    const target = new URL(value, origin);
-    const allowed =
-      target.origin === origin &&
-      (['/inicio', '/semana', '/demandas'].includes(target.pathname) ||
-        /^\/tarefa\/[0-9a-f-]+$/i.test(target.pathname));
-    return allowed ? `${target.pathname}${target.search}` : '/inicio';
-  } catch {
-    return '/inicio';
-  }
 }

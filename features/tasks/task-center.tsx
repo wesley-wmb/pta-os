@@ -1,6 +1,6 @@
 'use client';
 
-import { Search } from 'lucide-react';
+import { ChevronRight, Search } from 'lucide-react';
 import Link from 'next/link';
 import { useMemo, useState } from 'react';
 
@@ -31,6 +31,8 @@ const views: Array<{ id: ViewFilter; label: string }> = [
   { id: 'blocked', label: 'Bloqueadas' },
 ];
 
+const EMPTY_TASKS: TaskOverview[] = [];
+
 export function TaskCenter({
   workspaceId,
   currentUserId,
@@ -43,21 +45,49 @@ export function TaskCenter({
   const query = useTasks(workspaceId);
   const [view, setView] = useState<ViewFilter>('all');
   const [search, setSearch] = useState('');
+  const allTasks = query.data ?? EMPTY_TASKS;
   const tasks = useMemo(
-    () => filterTasks(query.data ?? [], view, search, currentUserId, timezone),
-    [currentUserId, query.data, search, timezone, view],
+    () => filterTasks(allTasks, view, search, currentUserId, timezone),
+    [allTasks, currentUserId, search, timezone, view],
   );
+  const summary = useMemo(() => {
+    return {
+      open: allTasks.filter((task) => !isClosed(task.status_category)).length,
+      inProgress: allTasks.filter(
+        (task) => task.status_category === 'in_progress',
+      ).length,
+      review: allTasks.filter((task) => task.status_category === 'review')
+        .length,
+      overdue: allTasks.filter(isOverdue).length,
+    };
+  }, [allTasks]);
   const filtered = view !== 'all' || search.trim().length > 0;
 
   return (
-    <section aria-labelledby="task-list-title">
+    <section
+      className="mx-auto w-full max-w-[1500px] px-5 pb-12 sm:px-8"
+      aria-labelledby="task-list-title"
+    >
       <h2 id="task-list-title" className="sr-only">
-        Lista de demandas
+        Lista de tarefas
       </h2>
-      <div className="sticky top-12 z-20 border-b bg-background/95 backdrop-blur">
+      {query.isSuccess && allTasks.length ? (
+        <div className="mb-5 grid grid-cols-2 border-y sm:grid-cols-4">
+          <SummaryMetric label="Abertas" value={summary.open} />
+          <SummaryMetric label="Em andamento" value={summary.inProgress} />
+          <SummaryMetric label="Em revisão" value={summary.review} />
+          <SummaryMetric
+            label="Atrasadas"
+            value={summary.overdue}
+            danger={summary.overdue > 0}
+          />
+        </div>
+      ) : null}
+      <div className="sticky top-0 z-20 overflow-hidden border-y bg-card/95 backdrop-blur">
         <div
-          className="flex gap-1 overflow-x-auto px-5 pt-3 sm:px-8"
-          aria-label="Visões de demandas"
+          className="pta-tabs-scroll flex gap-1 overflow-x-auto px-3 pt-2 sm:px-4"
+          role="group"
+          aria-label="Visões de tarefas"
         >
           {views.map((item) => (
             <button
@@ -75,8 +105,14 @@ export function TaskCenter({
             </button>
           ))}
         </div>
-        <div className="flex items-center gap-2 px-5 py-3 sm:px-8">
-          <div className="relative max-w-md flex-1">
+        <span
+          className="pointer-events-none absolute right-0 top-2 flex h-11 w-10 items-center justify-end bg-gradient-to-r from-transparent to-card pr-1 text-muted-foreground sm:hidden"
+          aria-hidden="true"
+        >
+          <ChevronRight className="size-4" />
+        </span>
+        <div className="flex items-center gap-2 border-t px-3 py-3 sm:px-4">
+          <div className="relative max-w-sm flex-1">
             <Search
               aria-hidden="true"
               className="absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
@@ -85,8 +121,8 @@ export function TaskCenter({
               value={search}
               onChange={(event) => setSearch(event.target.value)}
               placeholder="Buscar por título ou número…"
-              className="w-full pl-8"
-              aria-label="Buscar demandas"
+              className="w-full bg-muted/55 pl-8 shadow-none"
+              aria-label="Buscar tarefas"
             />
           </div>
         </div>
@@ -94,24 +130,28 @@ export function TaskCenter({
 
       {query.isPending ? <TaskListSkeleton /> : null}
       {query.isError ? (
-        <QueryError onRetry={() => void query.refetch()} />
+        <div className="mt-3 border-y">
+          <QueryError onRetry={() => void query.refetch()} />
+        </div>
       ) : null}
       {query.isSuccess && tasks.length === 0 ? (
-        <EmptyTasks
-          filtered={filtered}
-          onClear={() => {
-            setView('all');
-            setSearch('');
-          }}
-        />
+        <div className="mt-3 border-y">
+          <EmptyTasks
+            filtered={filtered}
+            onClear={() => {
+              setView('all');
+              setSearch('');
+            }}
+          />
+        </div>
       ) : null}
       {query.isSuccess && tasks.length > 0 ? (
-        <>
+        <div className="pta-panel mt-3 overflow-hidden">
           <div className="hidden overflow-x-auto md:block">
             <table className="w-full min-w-[760px] border-collapse text-sm">
-              <thead className="text-left text-xs font-medium text-muted-foreground">
+              <thead className="bg-muted/65 text-left text-xs font-medium text-muted-foreground">
                 <tr className="border-b">
-                  <th className="w-[42%] px-8 py-2.5 font-medium">Demanda</th>
+                  <th className="w-[42%] px-8 py-2.5 font-medium">Tarefa</th>
                   <th className="px-3 py-2.5 font-medium">Status</th>
                   <th className="px-3 py-2.5 font-medium">Responsável</th>
                   <th className="px-3 py-2.5 font-medium">Prazo</th>
@@ -120,34 +160,55 @@ export function TaskCenter({
               </thead>
               <tbody>
                 {tasks.map((task) => (
-                  <TaskRow key={task.id} task={task} timezone={timezone} />
+                  <TaskRow key={task.id} task={task} />
                 ))}
               </tbody>
             </table>
           </div>
           <ul className="divide-y md:hidden">
             {tasks.map((task) => (
-              <TaskMobileRow key={task.id} task={task} timezone={timezone} />
+              <TaskMobileRow key={task.id} task={task} />
             ))}
           </ul>
-        </>
+        </div>
       ) : null}
     </section>
   );
 }
 
-function TaskRow({ task, timezone }: { task: TaskOverview; timezone: string }) {
+function SummaryMetric({
+  label,
+  value,
+  danger = false,
+}: {
+  label: string;
+  value: number;
+  danger?: boolean;
+}) {
   return (
-    <tr className="h-11 border-b transition-colors hover:bg-muted/55">
+    <div className="border-l px-4 py-4 first:border-l-0 max-sm:odd:border-l-0 max-sm:[&:nth-child(n+3)]:border-t sm:px-5">
+      <p className="text-[11px] font-medium text-muted-foreground">{label}</p>
+      <strong
+        className={cn(
+          'mt-1 block text-2xl font-semibold tracking-[-0.025em]',
+          danger && 'text-destructive',
+        )}
+      >
+        {value}
+      </strong>
+    </div>
+  );
+}
+
+function TaskRow({ task }: { task: TaskOverview }) {
+  return (
+    <tr className="h-14 border-b transition-colors last:border-0 hover:bg-muted/55">
       <td className="px-8 py-1.5">
         <Link
           href={`/tarefa/${task.id}`}
           scroll={false}
           className="group flex min-w-0 items-center gap-3 rounded-sm focus-visible:ring-offset-0"
         >
-          <span className="w-20 shrink-0 font-mono text-[11px] text-muted-foreground">
-            {task.task_key}
-          </span>
           <span
             className={cn(
               'truncate font-medium decoration-border underline-offset-4 group-hover:underline',
@@ -168,7 +229,7 @@ function TaskRow({ task, timezone }: { task: TaskOverview; timezone: string }) {
       <td
         className={cn(
           'px-3 py-1.5 text-muted-foreground',
-          isOverdue(task, timezone) && 'font-medium text-destructive',
+          isOverdue(task) && 'font-medium text-destructive',
         )}
       >
         {formatDueDate(task.due_date)}
@@ -180,13 +241,7 @@ function TaskRow({ task, timezone }: { task: TaskOverview; timezone: string }) {
   );
 }
 
-function TaskMobileRow({
-  task,
-  timezone,
-}: {
-  task: TaskOverview;
-  timezone: string;
-}) {
+function TaskMobileRow({ task }: { task: TaskOverview }) {
   return (
     <li>
       <Link
@@ -194,18 +249,13 @@ function TaskMobileRow({
         scroll={false}
         className="block px-5 py-4 transition-colors hover:bg-muted/60"
       >
-        <span className="font-mono text-[11px] text-muted-foreground">
-          {task.task_key}
-        </span>
-        <p className="mt-1 font-medium leading-5">{task.title}</p>
+        <p className="font-medium leading-5">{task.title}</p>
         <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2 text-xs text-muted-foreground">
           <StatusPill task={task} />
           <span>{priorityLabels[task.priority]}</span>
           <span>{task.primary_assignee_name ?? 'Sem responsável'}</span>
           <span
-            className={cn(
-              isOverdue(task, timezone) && 'font-medium text-destructive',
-            )}
+            className={cn(isOverdue(task) && 'font-medium text-destructive')}
           >
             {formatDueDate(task.due_date)}
           </span>
@@ -229,9 +279,9 @@ function StatusPill({ task }: { task: TaskOverview }) {
 function TaskListSkeleton() {
   return (
     <div
-      className="px-5 py-5 sm:px-8"
+      className="pta-panel mt-3 px-5 py-5 sm:px-8"
       aria-busy="true"
-      aria-label="Carregando demandas"
+      aria-label="Carregando tarefas"
     >
       {Array.from({ length: 6 }).map((_, index) => (
         <div key={index} className="flex h-11 items-center gap-4 border-b">
@@ -274,25 +324,16 @@ function filterTasks(
       (!task.due_date || task.due_date < weekStart || task.due_date > weekEnd)
     )
       return false;
-    if (
-      view === 'overdue' &&
-      (!task.due_date ||
-        task.due_date >= today ||
-        isClosed(task.status_category))
-    )
-      return false;
+    if (view === 'overdue' && !isOverdue(task)) return false;
     if (view === 'blocked' && task.status_category !== 'blocked') return false;
     return true;
   });
 }
 
-function isOverdue(
-  task: TaskOverview,
-  timezone = Intl.DateTimeFormat().resolvedOptions().timeZone,
-) {
+function isOverdue(task: TaskOverview) {
   return Boolean(
-    task.due_date &&
-    task.due_date < currentDateInTimeZone(timezone) &&
+    task.due_at &&
+    task.due_at < new Date().toISOString() &&
     !isClosed(task.status_category),
   );
 }

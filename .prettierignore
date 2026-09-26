@@ -1,5 +1,6 @@
 .next
 coverage
+docs/skills/apple-design/SKILL.md
 node_modules
 playwright-report
 pnpm-lock.yaml

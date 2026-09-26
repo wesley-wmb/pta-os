@@ -11,7 +11,7 @@ export default function PeekError({
   return (
     <div className="grid min-h-full place-items-center px-6 py-12" role="alert">
       <div className="max-w-sm text-center">
-        <h2 className="font-semibold">Não foi possível abrir esta demanda.</h2>
+        <h2 className="font-semibold">Não foi possível abrir esta tarefa.</h2>
         <Button
           type="button"
           variant="outline"

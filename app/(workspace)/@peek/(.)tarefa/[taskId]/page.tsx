@@ -10,9 +10,13 @@ export default async function TaskPeekPage({
   const { context, statuses } = await getTaskPageContext();
   return (
     <TaskDetail
+      workspaceId={context.workspace.id}
       taskId={taskId}
       statuses={statuses}
       members={context.members}
+      workspaceRole={context.workspace.role}
+      currentUserId={context.user.id}
+      taskPrefix={context.workspace.taskPrefix}
       mode="peek"
     />
   );

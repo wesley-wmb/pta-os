@@ -92,15 +92,21 @@ export function WeekView({
       (items) =>
         items?.map((item) =>
           item.id === task.id
-            ? { ...item, due_date: targetDate, week_position: position }
+            ? {
+                ...item,
+                due_date: targetDate,
+                week_lane: 'scheduled',
+                week_position: position,
+              }
             : item,
         ),
     );
     setAnnouncement(
-      `${task.task_key} movida para ${formatDateForSpeech(targetDate)}.`,
+      `${task.title} movida para ${formatDateForSpeech(targetDate)}.`,
     );
-    const { error } = await createClient().rpc('move_task_to_day', {
+    const { error } = await createClient().rpc('move_task_in_week', {
       p_task_id: task.id,
+      p_week_lane: 'scheduled',
       p_due_date: targetDate,
       p_position: position,
       p_expected_version: task.version,
@@ -114,11 +120,11 @@ export function WeekView({
             items?.map((item) => (item.id === task.id ? previousTask : item)),
         );
       setAnnouncement(
-        `Não foi possível mover ${task.task_key}. A posição anterior foi restaurada.`,
+        `Não foi possível mover ${task.title}. A posição anterior foi restaurada.`,
       );
       toast.error(
         error.message.includes('PTA_VERSION_CONFLICT')
-          ? 'Esta demanda possui uma versão mais recente.'
+          ? 'Esta tarefa possui uma versão mais recente.'
           : 'Não foi possível mover. A posição anterior foi restaurada.',
       );
     }
@@ -141,13 +147,15 @@ export function WeekView({
 
   if (weekTasks.length === 0) {
     return (
-      <div className="px-5 py-20 text-center sm:px-8">
-        <h2 className="text-base font-semibold">
-          Nenhuma demanda prevista para esta semana.
-        </h2>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Crie uma demanda com prazo para começar a montar a semana.
-        </p>
+      <div className="mx-auto max-w-[1500px] px-5 pb-12 sm:px-8">
+        <div className="border-y px-1 py-12">
+          <h2 className="text-lg font-semibold leading-6">
+            Sem tarefas com prazo nesta semana
+          </h2>
+          <p className="mt-2 text-[15px] leading-[23px] text-muted-foreground">
+            Defina um prazo para incluir uma tarefa aqui.
+          </p>
+        </div>
       </div>
     );
   }
@@ -158,8 +166,8 @@ export function WeekView({
         {announcement}
       </p>
       <DndContext sensors={sensors} onDragEnd={(event) => void moveTask(event)}>
-        <div className="hidden overflow-x-auto p-5 sm:p-8 xl:block">
-          <div className="grid min-w-[1050px] grid-cols-7 gap-3">
+        <div className="pta-scrollbar mx-auto hidden max-w-[1500px] overflow-x-auto px-5 pb-12 sm:px-8 xl:block">
+          <div className="grid min-w-[1220px] grid-cols-7 gap-3">
             {dayKeys.map((dateKey) => (
               <DayColumn
                 key={dateKey}
@@ -175,7 +183,7 @@ export function WeekView({
         </div>
       </DndContext>
 
-      <div className="divide-y xl:hidden">
+      <div className="mx-auto max-w-[1500px] space-y-3 px-5 pb-12 sm:px-8 xl:hidden">
         {dayKeys.map((dateKey) => {
           const day = dateFromKey(dateKey);
           const dayTasks = weekTasks.filter(
@@ -183,11 +191,14 @@ export function WeekView({
           );
           if (!dayTasks.length) return null;
           return (
-            <section key={dateKey} className="px-5 py-5 sm:px-8">
-              <h2 className="text-sm font-semibold capitalize">
-                {format(day, "EEEE, d 'de' MMM", { locale: ptBR })}
+            <section key={dateKey} className="pta-panel overflow-hidden">
+              <h2 className="border-b bg-muted/60 px-4 py-3 text-sm font-semibold capitalize">
+                {format(day, "EEEE, d 'de' MMM", { locale: ptBR })}{' '}
+                <span className="font-normal text-muted-foreground">
+                  · {dayTasks.length}
+                </span>
               </h2>
-              <ul className="mt-3 divide-y border-y">
+              <ul className="divide-y px-4">
                 {dayTasks.map((task) => (
                   <li key={task.id}>
                     <WeekTaskLink task={task} />
@@ -226,18 +237,27 @@ function DayColumn({
     <section
       ref={setNodeRef}
       className={cn(
-        'min-h-[520px] border-t-2 px-1 transition-colors',
-        isToday ? 'border-pta-lime' : 'border-border',
-        isOver && 'bg-accent/45',
+        'min-h-[540px] rounded-lg border bg-muted/55 p-2 transition-colors',
+        isToday &&
+          'border-interactive-border bg-interactive ring-1 ring-primary/45',
+        isOver && 'bg-accent/55',
       )}
       aria-labelledby={`day-${dateKey}`}
     >
-      <header className="sticky top-[49px] z-10 -mx-1 mb-3 flex items-baseline justify-between border-b bg-background px-2 py-3">
-        <h2 id={`day-${dateKey}`} className="text-sm font-semibold capitalize">
-          {format(date, 'EEEE', { locale: ptBR })}
-        </h2>
-        <span className="text-xs text-muted-foreground">
-          {format(date, 'd MMM', { locale: ptBR })} · {tasks.length}
+      <header className="sticky top-0 z-10 mb-2 flex items-start justify-between rounded-md bg-muted/95 px-2 py-2 backdrop-blur">
+        <div>
+          <h2
+            id={`day-${dateKey}`}
+            className="text-xs font-semibold capitalize"
+          >
+            {format(date, 'EEEE', { locale: ptBR })}
+          </h2>
+          <span className="mt-0.5 block text-[11px] text-muted-foreground">
+            {format(date, 'd MMM', { locale: ptBR })}
+          </span>
+        </div>
+        <span className="grid size-6 place-items-center rounded-md bg-card text-[11px] font-semibold text-muted-foreground">
+          {tasks.length}
         </span>
       </header>
       <div className="space-y-2">
@@ -252,8 +272,8 @@ function DayColumn({
             />
           ))}
         {!tasks.length ? (
-          <p className="px-2 py-6 text-xs text-muted-foreground">
-            Nenhuma demanda neste dia.
+          <p className="px-2 py-8 text-center text-xs text-muted-foreground">
+            Sem tarefas para este dia.
           </p>
         ) : null}
       </div>
@@ -281,8 +301,8 @@ function DraggableTask({
       ref={setNodeRef}
       style={{ transform: CSS.Translate.toString(transform) }}
       className={cn(
-        'group rounded-md border bg-background p-3 transition-colors hover:border-foreground/20',
-        isDragging && 'z-50 opacity-70 shadow-lg',
+        'group rounded-md border bg-card p-3 transition-[border-color,background-color] hover:border-foreground/20 hover:bg-muted/20',
+        isDragging && 'z-50 opacity-70 shadow-xl',
       )}
     >
       <div className="flex items-start gap-2">
@@ -291,10 +311,7 @@ function DraggableTask({
           scroll={false}
           className="min-w-0 flex-1 rounded-sm"
         >
-          <span className="font-mono text-[10px] text-muted-foreground">
-            {task.task_key}
-          </span>
-          <h3 className="mt-1 line-clamp-2 text-sm font-medium leading-5">
+          <h3 className="line-clamp-2 text-sm font-medium leading-5">
             {task.title}
           </h3>
         </Link>
@@ -303,7 +320,7 @@ function DraggableTask({
             type="button"
             disabled={pending}
             className="-mr-1 grid size-8 shrink-0 touch-none place-items-center rounded-md text-muted-foreground opacity-0 hover:bg-muted group-hover:opacity-100 focus:opacity-100 disabled:cursor-wait disabled:opacity-40"
-            aria-label={`Mover ${task.task_key}`}
+            aria-label={`Mover ${task.title}`}
             {...listeners}
             {...attributes}
           >
@@ -311,7 +328,7 @@ function DraggableTask({
           </button>
         ) : null}
       </div>
-      <div className="mt-3 flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
+      <div className="mt-3 flex flex-wrap items-center gap-2 border-t pt-2.5 text-[11px] text-muted-foreground">
         <Badge
           variant="secondary"
           className={cn(
@@ -330,11 +347,8 @@ function DraggableTask({
 
 function WeekTaskLink({ task }: { task: TaskOverview }) {
   return (
-    <Link href={`/tarefa/${task.id}`} scroll={false} className="block py-3">
-      <span className="font-mono text-[10px] text-muted-foreground">
-        {task.task_key}
-      </span>
-      <p className="mt-1 text-sm font-medium">{task.title}</p>
+    <Link href={`/tarefa/${task.id}`} scroll={false} className="block py-4">
+      <p className="text-sm font-medium">{task.title}</p>
       <p className="mt-1 text-xs text-muted-foreground">
         {task.status_name} · {task.primary_assignee_name ?? 'Sem responsável'}
       </p>
@@ -345,7 +359,7 @@ function WeekTaskLink({ task }: { task: TaskOverview }) {
 function WeekSkeleton() {
   return (
     <div
-      className="grid grid-cols-1 gap-3 p-5 sm:p-8 xl:grid-cols-7"
+      className="mx-auto grid max-w-[1500px] grid-cols-1 gap-3 px-5 pb-12 sm:px-8 xl:grid-cols-7"
       aria-busy="true"
       aria-label="Carregando semana"
     >

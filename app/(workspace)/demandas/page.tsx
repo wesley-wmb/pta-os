@@ -1,24 +1,23 @@
 import type { Metadata } from 'next';
 
-import { PageHeader } from '@/components/layout/page-header';
-import { TaskCenter } from '@/features/tasks/task-center';
+import { TaskPipeline } from '@/features/tasks/task-pipeline';
 import { getTaskPageContext } from '@/features/tasks/server';
 
-export const metadata: Metadata = { title: 'Demandas' };
+export const metadata: Metadata = { title: 'Tarefas' };
 
 export default async function DemandsPage() {
-  const { context } = await getTaskPageContext();
+  const { context, statuses } = await getTaskPageContext();
 
   return (
-    <div>
-      <PageHeader
-        title="Demandas"
-        description="A base oficial do trabalho da equipe. Encontre, priorize e atualize sem perder o contexto."
-      />
-      <TaskCenter
+    <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+      <TaskPipeline
         workspaceId={context.workspace.id}
         currentUserId={context.user.id}
         timezone={context.workspace.timezone}
+        role={context.workspace.role}
+        statuses={statuses}
+        taskPrefix={context.workspace.taskPrefix}
+        members={context.members}
       />
     </div>
   );

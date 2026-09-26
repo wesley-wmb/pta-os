@@ -1,5 +1,7 @@
 import { z } from 'zod';
 
+import { taskDescriptionSchema } from './rich-text';
+
 export const taskPrioritySchema = z.enum(['low', 'medium', 'high', 'urgent']);
 
 export const newTaskSchema = z
@@ -19,6 +21,14 @@ export const newTaskSchema = z
         'Horário inválido.',
       ),
     primaryAssigneeId: z.string(),
+    typeId: z.string(),
+    productId: z.string(),
+    eventId: z.string(),
+    description: taskDescriptionSchema,
+    blockedReason: z
+      .string()
+      .trim()
+      .max(1000, 'O motivo pode ter no máximo 1.000 caracteres.'),
   })
   .refine((value) => !value.dueTime || Boolean(value.dueDate), {
     message: 'Escolha uma data antes do horário.',

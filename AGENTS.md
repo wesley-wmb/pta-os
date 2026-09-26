@@ -13,6 +13,12 @@
 
 Consulte `docs/ARCHITECTURE.md`, `docs/DATA_MODEL.md`, `docs/PERMISSIONS.md` e `docs/STATUS.md` antes de mudanças estruturais.
 
+## Design do layout novo
+
+- Para evoluir o shell atual e as telas de Início, Tarefas e Projetos, leia `docs/skills/apple-design/SKILL.md` (Emil Kowalski) e `docs/DESIGN_SYSTEM.md`.
+- Aplique a skill à implementação atual em `app`, `components` e `features`; não redesenhe referências HTML antigas. Preserve a identidade PTA, as regras de domínio e a densidade operacional.
+- Priorize feedback imediato, tipografia legível, movimento funcional e materiais acessíveis. A skill orienta decisões; não exige instalar bibliotecas nem adicionar gestos sem necessidade.
+
 <!-- BEGIN:nextjs-agent-rules -->
 
 # This is NOT the Next.js you know

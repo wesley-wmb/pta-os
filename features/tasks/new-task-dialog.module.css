@@ -1,0 +1,473 @@
+.composer {
+  display: flex;
+  width: min(1080px, calc(100vw - 40px)) !important;
+  max-width: none !important;
+  height: min(880px, calc(100dvh - 32px));
+  max-height: none;
+  flex-direction: column;
+  gap: 0;
+  overflow: hidden;
+  border-color: color-mix(in oklab, var(--border) 82%, white 5%);
+  border-radius: 22px;
+  padding: 0;
+  background: color-mix(in oklab, var(--card) 97%, #17202d 3%);
+  box-shadow:
+    0 38px 120px rgb(0 0 0 / 38%),
+    0 10px 38px rgb(0 0 0 / 22%);
+}
+
+.composerHeader {
+  display: flex;
+  min-height: 58px;
+  flex: none;
+  align-items: center;
+  gap: 12px;
+  border-bottom: 1px solid var(--border);
+  padding: 0 18px 0 28px;
+  background: color-mix(in oklab, var(--card) 94%, transparent);
+  backdrop-filter: blur(20px);
+}
+
+.breadcrumb {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  align-items: center;
+  gap: 8px;
+  color: var(--muted-foreground);
+  font-size: 13px;
+}
+
+.breadcrumb svg {
+  width: 14px;
+}
+
+.breadcrumb strong {
+  overflow: hidden;
+  color: var(--foreground);
+  font-weight: 650;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.draftBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid color-mix(in oklab, var(--pta-blue) 23%, var(--border));
+  border-radius: 999px;
+  padding: 6px 10px;
+  color: color-mix(in oklab, var(--foreground) 76%, var(--pta-blue));
+  background: color-mix(in oklab, var(--pta-blue) 7%, transparent);
+  font-size: 11px;
+  font-weight: 650;
+}
+
+.draftBadge svg {
+  width: 12px;
+  color: var(--pta-blue);
+}
+
+.form {
+  display: flex;
+  min-height: 0;
+  flex: 1;
+  flex-direction: column;
+}
+
+.contentGrid {
+  display: grid;
+  min-height: 0;
+  flex: 1;
+  grid-template-columns: minmax(0, 1fr) 315px;
+  overflow: hidden;
+}
+
+.mainColumn {
+  min-width: 0;
+  overflow-y: auto;
+  padding: 42px 34px 56px;
+  scrollbar-gutter: stable;
+}
+
+.titleBlock {
+  padding: 0 8px 28px;
+}
+
+.titleInput {
+  height: auto;
+  border: 0;
+  border-radius: 10px;
+  padding: 8px 4px;
+  background: transparent;
+  font-size: clamp(28px, 3.2vw, 40px);
+  font-weight: 680;
+  line-height: 1.14;
+  letter-spacing: -0.045em;
+  box-shadow: none;
+}
+
+.titleInput::placeholder {
+  color: color-mix(in oklab, var(--muted-foreground) 68%, transparent);
+}
+
+.titleInput:focus-visible {
+  box-shadow: 0 0 0 2px color-mix(in oklab, var(--ring) 68%, transparent);
+}
+
+.topProperties {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 9px;
+  margin-top: 16px;
+}
+
+.statusPill,
+.priorityPill {
+  min-width: 150px;
+  height: 40px;
+  border: 1px solid transparent;
+  border-radius: 12px;
+  padding: 0 14px;
+  background: color-mix(in oklab, var(--pta-blue) 11%, var(--card));
+  color: color-mix(in oklab, var(--foreground) 74%, var(--pta-blue));
+  font-size: 13px;
+  font-weight: 650;
+}
+
+.statusPill {
+  display: inline-flex;
+  align-items: center;
+}
+
+.priorityPill {
+  border-color: color-mix(in oklab, var(--pta-warning) 28%, var(--border));
+  background: color-mix(in oklab, var(--pta-warning) 7%, var(--card));
+  color: color-mix(in oklab, var(--foreground) 75%, var(--pta-warning));
+}
+
+.editorSection,
+.organization {
+  border-top: 1px solid var(--border);
+  padding: 28px 8px 0;
+}
+
+.organization {
+  margin-top: 30px;
+}
+
+.sectionTitle {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.sectionTitle > svg {
+  width: 18px;
+  height: 18px;
+  flex: none;
+  margin-top: 2px;
+  color: var(--muted-foreground);
+}
+
+.sectionTitle label,
+.sectionTitle h3 {
+  display: block;
+  margin: 0;
+  color: var(--foreground);
+  font-size: 16px;
+  font-weight: 680;
+}
+
+.sectionTitle p {
+  margin: 3px 0 0;
+  color: var(--muted-foreground);
+  font-size: 12px;
+}
+
+.propertySheet {
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  background: color-mix(in oklab, var(--muted) 32%, transparent);
+}
+
+.propertyRow {
+  display: grid;
+  min-height: 60px;
+  grid-template-columns: 155px minmax(0, 1fr);
+  align-items: center;
+  gap: 14px;
+  margin: 0 18px;
+}
+
+.propertyRow + .propertyRow {
+  border-top: 1px solid color-mix(in oklab, var(--border) 78%, transparent);
+}
+
+.propertyLabel {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--muted-foreground);
+  font-size: 13px;
+}
+
+.propertyLabel svg {
+  width: 17px;
+}
+
+.propertyRow > div {
+  min-width: 0;
+}
+
+.fixedValue {
+  display: inline-flex;
+  min-height: 40px;
+  align-items: center;
+  padding: 0 12px;
+  font-size: 13px;
+}
+
+.inlineControl {
+  width: 100%;
+  min-height: 40px;
+  border: 0;
+  background: color-mix(in oklab, var(--background) 45%, transparent);
+  box-shadow: none;
+}
+
+.dateControls {
+  display: grid;
+  grid-template-columns: minmax(0, 1.25fr) minmax(110px, 0.75fr);
+  gap: 8px;
+}
+
+.dateInput,
+.timeInput {
+  min-height: 40px;
+  border: 0;
+  background: color-mix(in oklab, var(--background) 45%, transparent);
+  box-shadow: none;
+}
+
+.blockedField {
+  margin-top: 18px;
+  border-radius: 16px;
+  padding: 16px;
+  background: color-mix(in oklab, var(--destructive) 7%, transparent);
+}
+
+.blockedField label {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 13px;
+  font-weight: 650;
+}
+
+.fieldError {
+  margin: 7px 4px 0;
+  color: var(--destructive);
+  font-size: 12px;
+}
+
+.contextColumn {
+  overflow-y: auto;
+  border-left: 1px solid var(--border);
+  padding: 28px 24px;
+  background: color-mix(in oklab, var(--muted) 28%, var(--card));
+}
+
+.contextHeading {
+  display: flex;
+  gap: 10px;
+  padding-bottom: 22px;
+  border-bottom: 1px solid var(--border);
+}
+
+.contextHeading > svg {
+  width: 18px;
+  flex: none;
+  color: var(--muted-foreground);
+}
+
+.contextHeading h3 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 680;
+}
+
+.contextHeading p {
+  margin: 4px 0 0;
+  color: var(--muted-foreground);
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.requesterCard {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  margin-top: 22px;
+  border: 1px solid var(--border);
+  border-radius: 15px;
+  padding: 13px;
+  background: color-mix(in oklab, var(--card) 82%, transparent);
+}
+
+.requesterCard > span {
+  display: grid;
+  width: 34px;
+  height: 34px;
+  flex: none;
+  place-items: center;
+  border-radius: 50%;
+  background: color-mix(in oklab, var(--pta-blue) 15%, var(--card));
+  color: var(--pta-blue);
+  font-size: 12px;
+  font-weight: 750;
+}
+
+.requesterCard strong,
+.requesterCard small {
+  display: block;
+}
+
+.requesterCard strong {
+  font-size: 12px;
+}
+
+.requesterCard small {
+  margin-top: 2px;
+  color: var(--muted-foreground);
+  font-size: 10px;
+}
+
+.creationSummary {
+  margin: 24px 0 0;
+}
+
+.creationSummary > div {
+  display: flex;
+  min-height: 50px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  border-bottom: 1px solid var(--border);
+}
+
+.creationSummary dt {
+  color: var(--muted-foreground);
+  font-size: 11px;
+}
+
+.creationSummary dd {
+  overflow: hidden;
+  margin: 0;
+  font-size: 11px;
+  font-weight: 650;
+  text-align: right;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.afterCreate {
+  margin-top: 28px;
+  border: 1px dashed color-mix(in oklab, var(--border) 86%, white 5%);
+  border-radius: 16px;
+  padding: 16px;
+}
+
+.afterCreate span {
+  color: var(--foreground);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.afterCreate p {
+  margin: 8px 0 0;
+  color: var(--muted-foreground);
+  font-size: 11px;
+  line-height: 1.55;
+}
+
+.composerFooter {
+  min-height: 68px;
+  flex: none;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  margin: 0;
+  border-radius: 0;
+  padding: 11px 22px;
+  background: color-mix(in oklab, var(--card) 94%, transparent);
+}
+
+.composerFooter > p {
+  margin: 0;
+  color: var(--muted-foreground);
+  font-size: 11px;
+}
+
+.composerFooter > div {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+@media (max-width: 800px) {
+  .composer {
+    width: 100vw !important;
+    height: 100dvh;
+    border: 0;
+    border-radius: 0;
+  }
+
+  .contentGrid {
+    display: block;
+    overflow-y: auto;
+  }
+
+  .mainColumn {
+    overflow: visible;
+    padding: 30px 18px 40px;
+  }
+
+  .contextColumn {
+    overflow: visible;
+    border-top: 1px solid var(--border);
+    border-left: 0;
+  }
+
+  .propertyRow {
+    grid-template-columns: 115px minmax(0, 1fr);
+    margin: 0 12px;
+  }
+
+  .dateControls {
+    grid-template-columns: 1fr;
+    padding: 8px 0;
+  }
+
+  .composerFooter {
+    align-items: stretch;
+  }
+
+  .composerFooter > p {
+    display: none;
+  }
+
+  .composerFooter > div {
+    width: 100%;
+    justify-content: flex-end;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .composer {
+    animation: none !important;
+  }
+}
