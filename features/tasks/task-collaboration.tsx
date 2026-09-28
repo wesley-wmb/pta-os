@@ -1,5 +1,7 @@
 'use client';
 
+import { TaskMedia } from './task-media';
+
 import { useQueryClient } from '@tanstack/react-query';
 import {
   AlignLeft,
@@ -16,6 +18,7 @@ import {
   Trash2,
 } from 'lucide-react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import { useId, useRef, useState } from 'react';
 import { toast } from 'sonner';
 
@@ -43,6 +46,7 @@ import { cn } from '@/lib/utils';
 
 import { fetchTaskCommentsPage, taskKeys } from './queries';
 import { NewTaskDialog } from './new-task-dialog';
+import { safeTaskReturnPath, taskHrefWithReturn } from './task-return-path';
 import { hasTaskDescriptionContent, taskDescriptionsEqual } from './rich-text';
 import { RichTextEditor, RichTextViewer } from './rich-text-editor';
 import type {
@@ -177,6 +181,7 @@ export function TaskCollaborationMain({
 
       <div className="min-w-0 border-t py-8">
         <LinksSection
+          workspaceId={task.workspace_id}
           taskId={task.id}
           links={collaboration.links}
           canAdd={capabilities.can_add_link}
@@ -1059,6 +1064,7 @@ function SubtasksSection({
   canUnlink: boolean;
   onRefresh: () => Promise<void>;
 }) {
+  const returnPath = safeTaskReturnPath(useSearchParams().get('retorno'));
   const completed = subtasks.filter(
     (subtask) => subtask.status_category === 'done',
   ).length;
@@ -1132,7 +1138,7 @@ function SubtasksSection({
 
       {parentTask ? (
         <Link
-          href={`/tarefa/${parentTask.id}`}
+          href={taskHrefWithReturn(parentTask.id, returnPath)}
           scroll={false}
           className="mt-4 flex min-h-12 items-center gap-3 rounded-xl border bg-muted/25 px-4 py-3 transition-colors hover:bg-muted/55 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
@@ -1157,7 +1163,7 @@ function SubtasksSection({
           {subtasks.map((subtask) => (
             <li key={subtask.id} className="flex min-w-0 items-center gap-1">
               <Link
-                href={`/tarefa/${subtask.id}`}
+                href={taskHrefWithReturn(subtask.id, returnPath)}
                 scroll={false}
                 className="group flex min-h-16 min-w-0 flex-1 items-center gap-3 rounded-lg py-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
@@ -1246,18 +1252,22 @@ function SubtasksSection({
   );
 }
 
-function LinksSection({
+export function LinksSection({
+  workspaceId,
   taskId,
   links,
   canAdd,
   onRefresh,
 }: {
+  workspaceId: string;
   taskId: string;
   links: TaskLink[];
   canAdd: boolean;
   onRefresh: () => Promise<void>;
 }) {
   const [creating, setCreating] = useState(false);
+  const [comment, setComment] = useState('');
+  const [mediaCreating, setMediaCreating] = useState(false);
   const [editing, setEditing] = useState<TaskLink>();
   const [removing, setRemoving] = useState<TaskLink>();
   const [busy, setBusy] = useState(false);
@@ -1265,26 +1275,33 @@ function LinksSection({
 
   async function saveLink(values: LinkValues) {
     setBusy(true);
-    const client = createClient();
-    const result = editing
-      ? await client.rpc('update_task_link', {
-          p_link_id: editing.id,
-          p_url: values.url,
-          p_label: values.label || undefined,
-        })
-      : await client.rpc('add_task_link', {
-          p_task_id: taskId,
-          p_url: values.url,
-          p_label: values.label || undefined,
-        });
-    if (result.error) {
-      toast.error('Não foi possível salvar o link.');
-    } else {
-      setCreating(false);
-      setEditing(undefined);
+    try {
+      const client = createClient();
+      const result = await client.rpc('save_task_link_with_description', {
+        p_task_id: taskId,
+        p_url: values.url,
+        p_label: values.label || undefined,
+        p_description: values.description,
+        p_link_id: editing?.id,
+        p_expected_updated_at: editing?.updated_at,
+      });
+      if (result.error) {
+        toast.error(
+          result.error.message.includes('PTA_VERSION_CONFLICT')
+            ? 'Este link mudou. Reabra a edição para carregar a versão atual.'
+            : 'Não foi possível salvar o link.',
+        );
+      } else {
+        setCreating(false);
+        setComment('');
+        setEditing(undefined);
+      }
+      await onRefresh();
+    } catch {
+      toast.error('Não foi possível salvar o link. Confira a conexão.');
+    } finally {
+      setBusy(false);
     }
-    await onRefresh();
-    setBusy(false);
   }
 
   async function removeLink() {
@@ -1305,32 +1322,102 @@ function LinksSection({
         id={`${sectionId}-title`}
         icon={Link2}
         title="Links e arquivos"
-        meta={links.length ? String(links.length) : undefined}
-        action={
-          canAdd && !creating && !editing ? (
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              onClick={() => setCreating(true)}
-            >
-              <Plus aria-hidden="true" />
-              Adicionar link
-            </Button>
-          ) : null
+        meta={
+          links.length
+            ? `${links.length} ${links.length === 1 ? 'link' : 'links'}`
+            : undefined
         }
       />
 
-      {creating || editing ? (
+      {canAdd ? (
+        <div className="mt-4 overflow-hidden rounded-2xl border bg-background focus-within:ring-2 focus-within:ring-ring/40">
+          <label
+            htmlFor={`${sectionId}-attachment-comment`}
+            className="sr-only"
+          >
+            Comentário sobre o link ou arquivo
+          </label>
+          <Textarea
+            id={`${sectionId}-attachment-comment`}
+            value={comment}
+            onChange={(event) => setComment(event.target.value)}
+            maxLength={1000}
+            disabled={busy}
+            placeholder="Escreva um comentário e adicione um link ou arquivo…"
+            className="min-h-24 resize-y rounded-none border-0 bg-transparent px-4 py-3 shadow-none focus-visible:ring-0 dark:bg-transparent"
+          />
+          <div className="flex flex-wrap items-center justify-between gap-2 border-t px-3 py-2">
+            <div
+              className="flex items-center gap-1"
+              role="group"
+              aria-label="Anexar ao comentário"
+            >
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                disabled={busy || mediaCreating}
+                aria-pressed={mediaCreating}
+                onClick={() => {
+                  setCreating(false);
+                  setMediaCreating(true);
+                }}
+              >
+                <Plus aria-hidden="true" /> Anexar mídia
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                disabled={busy || mediaCreating}
+                aria-pressed={creating}
+                onClick={() => setCreating(!creating)}
+              >
+                <Link2 aria-hidden="true" /> Inserir link
+              </Button>
+            </div>
+            <span className="text-xs text-muted-foreground" aria-live="polite">
+              {comment.length}/1000
+            </span>
+          </div>
+          {creating ? (
+            <div className="border-t px-4 pb-4">
+              <LinkForm
+                id={sectionId}
+                busy={busy}
+                sharedDescription={comment}
+                onCancel={() => setCreating(false)}
+                onSubmit={saveLink}
+              />
+            </div>
+          ) : null}
+          <TaskMedia
+            taskId={taskId}
+            workspaceId={workspaceId}
+            creating={mediaCreating}
+            initialDescription={comment}
+            onBusyChange={setBusy}
+            onUploaded={() => setComment('')}
+            onClose={() => setMediaCreating(false)}
+            onRefresh={onRefresh}
+          />
+        </div>
+      ) : (
+        <TaskMedia
+          taskId={taskId}
+          workspaceId={workspaceId}
+          creating={false}
+          onClose={() => {}}
+          onRefresh={onRefresh}
+        />
+      )}
+      {editing ? (
         <LinkForm
-          key={editing?.id ?? 'new-link'}
+          key={editing.id}
           id={sectionId}
           initialLink={editing}
           busy={busy}
-          onCancel={() => {
-            setCreating(false);
-            setEditing(undefined);
-          }}
+          onCancel={() => setEditing(undefined)}
           onSubmit={saveLink}
         />
       ) : null}
@@ -1408,15 +1495,16 @@ function LinksSection({
                     </Button>
                   ) : null}
                 </div>
+                {link.description && (
+                  <p className="px-3 pb-2 whitespace-pre-wrap text-sm text-muted-foreground break-words">
+                    {link.description}
+                  </p>
+                )}
               </li>
             );
           })}
         </ul>
-      ) : creating ? null : (
-        <p className="mt-3 text-sm text-muted-foreground">
-          Nenhum arquivo ou link adicionado.
-        </p>
-      )}
+      ) : null}
 
       <AlertDialog
         open={Boolean(removing)}
@@ -1453,23 +1541,28 @@ function LinksSection({
   );
 }
 
-type LinkValues = { url: string; label: string };
+type LinkValues = { url: string; label: string; description: string };
 
 function LinkForm({
   id,
   initialLink,
+  sharedDescription,
   busy,
   onCancel,
   onSubmit,
 }: {
   id: string;
   initialLink?: TaskLink;
+  sharedDescription?: string;
   busy: boolean;
   onCancel: () => void;
   onSubmit: (values: LinkValues) => Promise<void>;
 }) {
   const [url, setUrl] = useState(initialLink?.url ?? '');
   const [label, setLabel] = useState(initialLink?.label ?? '');
+  const [description, setDescription] = useState(
+    initialLink?.description ?? '',
+  );
   const [error, setError] = useState<string>();
 
   return (
@@ -1484,7 +1577,11 @@ function LinkForm({
           return;
         }
         setError(undefined);
-        void onSubmit({ url: cleanUrl, label: label.trim() });
+        void onSubmit({
+          url: cleanUrl,
+          label: label.trim(),
+          description: (sharedDescription ?? description).trim(),
+        });
       }}
     >
       <div className="space-y-1.5">
@@ -1524,6 +1621,22 @@ function LinkForm({
           onChange={(event) => setLabel(event.target.value)}
         />
       </div>
+      {sharedDescription === undefined ? (
+        <div className="space-y-1.5">
+          <Label htmlFor={`${id}-link-description`}>
+            Descrição ou comentário (opcional)
+          </Label>
+          <Textarea
+            id={`${id}-link-description`}
+            value={description}
+            maxLength={1000}
+            rows={3}
+            disabled={busy}
+            onChange={(event) => setDescription(event.target.value)}
+            placeholder="Adicione um contexto para este link."
+          />
+        </div>
+      ) : null}
       <div className="flex flex-wrap justify-end gap-2">
         <Button
           type="button"

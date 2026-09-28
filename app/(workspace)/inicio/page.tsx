@@ -16,8 +16,8 @@ import { getTaskPageContext } from '@/features/tasks/server';
 export const metadata: Metadata = { title: 'Início' };
 
 export default async function StartPage() {
-  const { context, statuses } = await getTaskPageContext();
-  const [eventsData, historyData] = await Promise.all([
+  const [{ context, statuses }, eventsData, historyData] = await Promise.all([
+    getTaskPageContext(),
     getEventsPageData().catch(() => null),
     getHistoryPageData().catch(() => null),
   ]);

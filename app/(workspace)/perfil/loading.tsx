@@ -2,7 +2,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 
 export default function ProfileLoading() {
   return (
-    <main
+    <section
       className="mx-auto w-full max-w-[900px] px-4 py-8 sm:px-6"
       aria-busy="true"
     >
@@ -27,6 +27,6 @@ export default function ProfileLoading() {
         </div>
       </div>
       <span className="sr-only">Carregando perfil</span>
-    </main>
+    </section>
   );
 }

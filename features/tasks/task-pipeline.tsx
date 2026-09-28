@@ -65,7 +65,7 @@ import {
   UsersRound,
   Zap,
 } from 'lucide-react';
-import Link from 'next/link';
+import { TaskDetailLink } from './task-detail-link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import {
   useEffect,
@@ -73,7 +73,6 @@ import {
   useMemo,
   useState,
   useSyncExternalStore,
-  type ComponentProps,
 } from 'react';
 import { toast } from 'sonner';
 import { createPortal } from 'react-dom';
@@ -84,6 +83,7 @@ import {
   BoardColumnControls,
   BoardColumnIconGlyph,
   type BoardColumnColor,
+  type BoardColumnControlsProps,
   type BoardColumnEditableValues,
   type BoardColumnIcon,
   type BoardColumnWeekLink,
@@ -95,7 +95,11 @@ import {
   useUpdateTaskBoardColumn,
   type TaskBoardStatusColumn,
 } from './board-configuration';
-import { taskHrefWithReturn } from './task-return-path';
+import {
+  ColumnLifecycleDialog,
+  WeekConnectionDialog,
+  WeekColumnDeleteDialog,
+} from './board-column-dialogs';
 import {
   TaskBoardColumn,
   TaskBoardEmpty,
@@ -1276,6 +1280,9 @@ function StatusKanban({
   initialEventId?: string;
 }) {
   const queryClient = useQueryClient();
+  const [columnDialog, setColumnDialog] = useState<{
+    id: string | null;
+  } | null>(null);
   const [draggingTask, setDraggingTask] = useState<TaskOverview | null>(null);
   const [draggingColumnId, setDraggingColumnId] = useState<string | null>(null);
   const [previewTasks, setPreviewTasks] = useState<TaskOverview[] | null>(null);
@@ -1334,11 +1341,17 @@ function StatusKanban({
       });
     }
     const activeStatuses =
-      emergencyStatus.id === EMERGENCY_BOARD_STATUS_ID
+      emergencyStatus.id === EMERGENCY_BOARD_STATUS_ID &&
+      boardConfiguration.data?.source !== 'remote'
         ? [emergencyStatus, ...configuredStatuses]
         : configuredStatuses;
     return [...activeStatuses, ...archived.values()];
-  }, [configuredStatuses, emergencyStatus, tasks]);
+  }, [
+    configuredStatuses,
+    emergencyStatus,
+    tasks,
+    boardConfiguration.data?.source,
+  ]);
   const displayedStatuses = previewStatuses ?? kanbanStatuses;
   const reviewStatus = configuredStatuses.find(
     (status) => status.category === 'review',
@@ -1346,9 +1359,19 @@ function StatusKanban({
   const boardTasks = useMemo(
     () =>
       displayedTasks.map((task) =>
-        normalizeTaskForLinkedBoard(task, reviewStatus, emergencyStatus),
+        normalizeTaskForLinkedBoard(
+          task,
+          reviewStatus,
+          emergencyStatus,
+          boardConfiguration.data?.source === 'remote',
+        ),
       ),
-    [displayedTasks, emergencyStatus, reviewStatus],
+    [
+      displayedTasks,
+      emergencyStatus,
+      reviewStatus,
+      boardConfiguration.data?.source,
+    ],
   );
 
   function linkedLaneForStatus(status: TaskStatus) {
@@ -1357,7 +1380,10 @@ function StatusKanban({
     );
     return link?.direction === 'week_to_status'
       ? null
-      : (link?.week_lane_key ?? linkedLaneForBoardStatus(status));
+      : (link?.week_lane_key ??
+          (boardConfiguration.data?.source === 'remote'
+            ? null
+            : linkedLaneForBoardStatus(status)));
   }
 
   async function updateStatusColumn(
@@ -1651,7 +1677,12 @@ function StatusKanban({
       tasks;
     return planBoardMove({
       tasks: workspaceTasks.map((task) =>
-        normalizeTaskForLinkedBoard(task, reviewStatus, emergencyStatus),
+        normalizeTaskForLinkedBoard(
+          task,
+          reviewStatus,
+          emergencyStatus,
+          boardConfiguration.data?.source === 'remote',
+        ),
       ),
       statuses: kanbanStatuses,
       taskId: String(event.active.id),
@@ -1681,7 +1712,12 @@ function StatusKanban({
     setPreviewTasks(
       applyBoardMove(
         tasks.map((task) =>
-          normalizeTaskForLinkedBoard(task, reviewStatus, emergencyStatus),
+          normalizeTaskForLinkedBoard(
+            task,
+            reviewStatus,
+            emergencyStatus,
+            boardConfiguration.data?.source === 'remote',
+          ),
         ),
         kanbanStatuses,
         plan,
@@ -1707,6 +1743,7 @@ function StatusKanban({
       task,
       reviewStatus,
       emergencyStatus,
+      boardConfiguration.data?.source === 'remote',
     );
     if (
       visualTask.status_id === status.id &&
@@ -1770,9 +1807,27 @@ function StatusKanban({
                   key={status.id}
                   status={status}
                   column={column}
+                  weekLinkOptions={
+                    boardConfiguration.data
+                      ? [
+                          { value: 'none', label: 'Sem vínculo' },
+                          ...boardConfiguration.data.week_board.columns
+                            .filter(
+                              (item) =>
+                                item.is_active && item.key !== 'scheduled',
+                            )
+                            .map((item) => ({
+                              value: boardColumnWeekLink(item.key),
+                              label: item.name,
+                            })),
+                        ]
+                      : undefined
+                  }
                   linkedWeekLane={
                     link?.week_lane_key ??
-                    linkedLaneForBoardStatus(status) ??
+                    (boardConfiguration.data?.source === 'remote'
+                      ? undefined
+                      : linkedLaneForBoardStatus(status)) ??
                     undefined
                   }
                   canManageColumns={Boolean(canManageColumns && column)}
@@ -1780,6 +1835,7 @@ function StatusKanban({
                   canMoveRight={index < displayedStatuses.length - 1}
                   onMoveColumn={moveStatusColumn}
                   onUpdateColumn={updateStatusColumn}
+                  onDeleteColumn={() => setColumnDialog({ id: status.id })}
                   archived={
                     status.id !== emergencyStatus.id &&
                     !configuredStatuses.some((item) => item.id === status.id)
@@ -1804,6 +1860,16 @@ function StatusKanban({
               );
             })}
           </SortableContext>
+          {canManageColumns ? (
+            <Button
+              variant="ghost"
+              className="h-12 w-72 shrink-0 justify-start border border-dashed"
+              onClick={() => setColumnDialog({ id: null })}
+            >
+              <Plus />
+              Adicionar coluna
+            </Button>
+          ) : null}
         </TaskBoardViewport>
         <TaskDragPreview task={draggingTask} today={today} nowIso={nowIso} />
         <ColumnDragPreview
@@ -1813,6 +1879,13 @@ function StatusKanban({
         />
       </DndContext>
 
+      {columnDialog && boardConfiguration.data ? (
+        <ColumnLifecycleDialog
+          configuration={boardConfiguration.data}
+          columnId={columnDialog.id}
+          onClose={() => setColumnDialog(null)}
+        />
+      ) : null}
       <Dialog
         open={Boolean(blockedMove)}
         onOpenChange={(open) => {
@@ -1887,6 +1960,7 @@ function StatusKanban({
 }
 
 function StatusColumn({
+  weekLinkOptions,
   status,
   column,
   linkedWeekLane,
@@ -1895,6 +1969,7 @@ function StatusColumn({
   canMoveRight,
   onMoveColumn,
   onUpdateColumn,
+  onDeleteColumn,
   archived,
   tasks,
   role,
@@ -1904,7 +1979,9 @@ function StatusColumn({
   today,
   nowIso,
 }: {
+  weekLinkOptions?: BoardColumnControlsProps['weekLinkOptions'];
   status: TaskStatus;
+  onDeleteColumn: () => void;
   column?: TaskBoardStatusColumn;
   linkedWeekLane?: TaskWeekLane;
   canManageColumns: boolean;
@@ -1990,6 +2067,7 @@ function StatusColumn({
           column && canManageColumns ? (
             <BoardColumnControls
               columnId={status.id}
+              weekLinkOptions={weekLinkOptions}
               value={{
                 name: status.name,
                 color: boardColumnColor(column.color),
@@ -2002,6 +2080,7 @@ function StatusColumn({
               automationCount={linkedWeekLane ? 1 : 0}
               onMove={onMoveColumn}
               onUpdate={onUpdateColumn}
+              onDelete={onDeleteColumn}
               onOpenAutomations={() =>
                 toast.info(
                   'O vínculo com a Semana fica no editor desta coluna.',
@@ -2014,7 +2093,9 @@ function StatusColumn({
           archived ? null : (
             <CreateTaskButton
               creation={creation}
-              initialStatusId={linkedWeekLane ? undefined : status.id}
+              initialStatusId={
+                column ? status.id : linkedWeekLane ? undefined : status.id
+              }
               initialBlocked={status.category === 'blocked'}
               initialWeekLane={
                 linkedWeekLane && linkedWeekLane !== 'scheduled'
@@ -2255,6 +2336,10 @@ function WeekBoard({
   members: WorkspaceMember[];
   nowIso: string;
 }) {
+  const [deleteLane, setDeleteLane] = useState<TaskWeekLane | null>(null);
+  const [connectionLane, setConnectionLane] = useState<TaskWeekLane | null>(
+    null,
+  );
   const [draggingTask, setDraggingTask] = useState<TaskOverview | null>(null);
   const [draggingLane, setDraggingLane] = useState<AuxiliaryWeekLane | null>(
     null,
@@ -2483,7 +2568,14 @@ function WeekBoard({
                 key={lane.id}
                 lane={lane}
                 tasks={tasks.filter((task) =>
-                  taskBelongsToAuxiliaryLane(task, lane.id, dayKeys[0]),
+                  taskBelongsToAuxiliaryLane(
+                    task,
+                    lane.id,
+                    dayKeys[0],
+                    configuredLanes.some((item) => item.id === 'backlog')
+                      ? 'backlog'
+                      : configuredLanes[0]?.id,
+                  ),
                 )}
                 today={today}
                 nowIso={nowIso}
@@ -2496,6 +2588,8 @@ function WeekBoard({
                 canMoveRight={index < planningLanes.length - 1}
                 onMoveColumn={moveWeekLane}
                 onUpdateColumn={updateWeekColumn}
+                onOpenConnection={() => setConnectionLane(lane.id)}
+                onDeleteColumn={() => setDeleteLane(lane.id)}
               />
             ))}
           </SortableContext>
@@ -2521,7 +2615,14 @@ function WeekBoard({
                 key={lane.id}
                 lane={lane}
                 tasks={tasks.filter((task) =>
-                  taskBelongsToAuxiliaryLane(task, lane.id, dayKeys[0]),
+                  taskBelongsToAuxiliaryLane(
+                    task,
+                    lane.id,
+                    dayKeys[0],
+                    configuredLanes.some((item) => item.id === 'backlog')
+                      ? 'backlog'
+                      : configuredLanes[0]?.id,
+                  ),
                 )}
                 today={today}
                 nowIso={nowIso}
@@ -2534,6 +2635,8 @@ function WeekBoard({
                 canMoveRight={index < remainingLanes.length - 1}
                 onMoveColumn={moveWeekLane}
                 onUpdateColumn={updateWeekColumn}
+                onOpenConnection={() => setConnectionLane(lane.id)}
+                onDeleteColumn={() => setDeleteLane(lane.id)}
               />
             ))}
           </SortableContext>
@@ -2542,6 +2645,20 @@ function WeekBoard({
         <WeekLaneDragPreview
           lane={displayedLanes.find((lane) => lane.id === draggingLane)}
         />
+        {deleteLane && boardConfiguration.data ? (
+          <WeekColumnDeleteDialog
+            configuration={boardConfiguration.data}
+            lane={deleteLane}
+            onClose={() => setDeleteLane(null)}
+          />
+        ) : null}
+        {connectionLane && boardConfiguration.data ? (
+          <WeekConnectionDialog
+            configuration={boardConfiguration.data}
+            lane={connectionLane}
+            onClose={() => setConnectionLane(null)}
+          />
+        ) : null}
       </DndContext>
     </>
   );
@@ -2647,8 +2764,12 @@ function OperationalWeekLane({
   canMoveRight,
   onMoveColumn,
   onUpdateColumn,
+  onOpenConnection,
+  onDeleteColumn,
 }: {
   lane: WeekLaneDefinition;
+  onOpenConnection: () => void;
+  onDeleteColumn: () => void;
   tasks: TaskOverview[];
   today: string;
   nowIso: string;
@@ -2743,11 +2864,8 @@ function OperationalWeekLane({
               showWeekLink={false}
               onMove={onMoveColumn}
               onUpdate={onUpdateColumn}
-              onOpenAutomations={() =>
-                toast.info(
-                  'As automações com o Quadro são configuradas nas colunas de status.',
-                )
-              }
+              onOpenAutomations={onOpenConnection}
+              onDelete={onDeleteColumn}
             />
           ) : null
         }
@@ -3172,6 +3290,7 @@ function TaskTable({
                   >
                     <TaskDetailLink
                       taskId={task.id}
+                      workspaceId={task.workspace_id}
                       aria-label={`Abrir ${task.title}`}
                     >
                       <ChevronRight aria-hidden="true" />
@@ -3337,55 +3456,59 @@ function PipelineDraggableCard({
     },
   });
   return (
-    <article
-      ref={setNodeRef}
-      style={{
-        transform: CSS.Transform.toString(transform),
-        transition,
-      }}
-      onPointerDown={(event) => {
-        if (event.pointerType !== 'touch') listeners?.onPointerDown?.(event);
-      }}
-      className={cn(
-        'pta-task-card group relative overflow-hidden rounded-lg border border-border/65 bg-card transition-[border-color,box-shadow,opacity,transform] duration-150 hover:border-primary/35 focus-within:border-primary/50 motion-reduce:transition-none',
-        !disabled && 'cursor-grab select-none active:cursor-grabbing',
-        isDragging && 'opacity-30 ring-2 ring-primary/25',
-      )}
-    >
-      <TaskDetailLink
-        taskId={task.id}
-        className="absolute inset-0 z-0 rounded-lg focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
-        aria-label={`Abrir ${task.title}`}
-        draggable={false}
-      />
-      <TaskCardContent
-        task={task}
-        nowIso={nowIso}
-        today={today}
-        dragHandle={
-          !disabled ? (
-            <div className="flex items-center">
-              <TaskCardActions task={task} />
-              <button
-                ref={setActivatorNodeRef}
-                id={`task-drag-${task.id}`}
-                type="button"
-                className="grid size-11 shrink-0 touch-none place-items-center rounded-lg text-muted-foreground transition-colors hover:bg-accent hover:text-primary focus-visible:bg-accent lg:size-9"
-                aria-label={`Mover ${task.title}`}
-                onPointerDown={(event) => {
-                  event.stopPropagation();
-                  listeners?.onPointerDown?.(event);
-                }}
-                onKeyDown={(event) => listeners?.onKeyDown?.(event)}
-                {...attributes}
-              >
-                <GripVertical aria-hidden="true" className="size-4" />
-              </button>
-            </div>
-          ) : undefined
-        }
-      />
-    </article>
+    <TaskCardActions task={task} disabled={disabled}>
+      <article
+        ref={setNodeRef}
+        style={{
+          transform: CSS.Transform.toString(transform),
+          transition,
+        }}
+        onPointerDown={(event) => {
+          if (event.button === 0 && event.pointerType !== 'touch')
+            listeners?.onPointerDown?.(event);
+        }}
+        className={cn(
+          'pta-task-card group relative overflow-hidden rounded-lg border border-border/65 bg-card transition-[border-color,box-shadow,opacity,transform] duration-150 hover:border-primary/35 focus-within:border-primary/50 motion-reduce:transition-none',
+          !disabled && 'cursor-grab select-none active:cursor-grabbing',
+          isDragging && 'opacity-30 ring-2 ring-primary/25',
+        )}
+      >
+        <TaskDetailLink
+          taskId={task.id}
+          workspaceId={task.workspace_id}
+          className="absolute inset-0 z-0 rounded-lg focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+          aria-label={`Abrir ${task.title}`}
+          draggable={false}
+        />
+        <TaskCardContent
+          task={task}
+          simplified
+          nowIso={nowIso}
+          today={today}
+          dragHandle={
+            !disabled ? (
+              <div className="flex items-center">
+                <button
+                  ref={setActivatorNodeRef}
+                  id={`task-drag-${task.id}`}
+                  type="button"
+                  className="opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 [@media(hover:none)]:opacity-100 grid size-11 shrink-0 touch-none place-items-center rounded-lg text-muted-foreground transition-colors hover:bg-accent hover:text-primary focus-visible:bg-accent lg:size-9"
+                  aria-label={`Mover ${task.title}`}
+                  onPointerDown={(event) => {
+                    event.stopPropagation();
+                    listeners?.onPointerDown?.(event);
+                  }}
+                  onKeyDown={(event) => listeners?.onKeyDown?.(event)}
+                  {...attributes}
+                >
+                  <GripVertical aria-hidden="true" className="size-4" />
+                </button>
+              </div>
+            ) : undefined
+          }
+        />
+      </article>
+    </TaskCardActions>
   );
 }
 
@@ -3419,6 +3542,7 @@ function TaskDragPreview({
         >
           <TaskCardContent
             task={task}
+            simplified
             today={today}
             nowIso={nowIso}
             dragHandle={
@@ -3577,6 +3701,7 @@ function CompactDraggableTask({
     >
       <TaskDetailLink
         taskId={task.id}
+        workspaceId={task.workspace_id}
         className="min-w-0 flex-1 truncate rounded-sm font-medium"
       >
         {task.title}
@@ -3607,6 +3732,7 @@ function TaskTitleLink({
   return (
     <TaskDetailLink
       taskId={task.id}
+      workspaceId={task.workspace_id}
       className="block min-w-0 flex-1 rounded-sm transition-colors hover:text-pta-blue focus-visible:text-pta-blue"
     >
       <span
@@ -3638,6 +3764,7 @@ function TaskEditorialLink({
   return (
     <TaskDetailLink
       taskId={task.id}
+      workspaceId={task.workspace_id}
       className={cn(
         'block min-w-0 rounded-sm transition-colors hover:text-pta-blue focus-visible:text-pta-blue',
         compact && 'py-4',
@@ -3667,26 +3794,6 @@ function TaskEditorialLink({
         {` / ${priorityLabels[task.priority]}`}
       </p>
     </TaskDetailLink>
-  );
-}
-
-function TaskDetailLink({
-  taskId,
-  ...props
-}: Omit<ComponentProps<typeof Link>, 'href' | 'scroll'> & {
-  taskId: string;
-}) {
-  const pathname = usePathname();
-  const searchParams = useSearchParams();
-  const search = searchParams.toString();
-  const returnPath = `${pathname}${search ? `?${search}` : ''}`;
-
-  return (
-    <Link
-      {...props}
-      href={taskHrefWithReturn(taskId, returnPath)}
-      scroll={false}
-    />
   );
 }
 
@@ -4058,8 +4165,6 @@ function taskStatusFromBoardColumn(column: TaskBoardStatusColumn): TaskStatus {
 }
 
 function statusDisplayName(status: TaskStatus) {
-  if (status.name === 'Bloqueada') return 'Revisão';
-  if (status.name === 'Em revisão') return 'Alterações';
   return status.name;
 }
 
@@ -4135,7 +4240,9 @@ function normalizeTaskForLinkedBoard(
   task: TaskOverview,
   reviewStatus: TaskStatus | undefined,
   emergencyStatus: TaskStatus,
+  configured = false,
 ): TaskOverview {
+  if (configured) return task;
   if (task.week_lane === 'emergency') {
     return {
       ...task,
@@ -4205,10 +4312,11 @@ function taskBelongsToAuxiliaryLane(
   task: TaskOverview,
   lane: AuxiliaryWeekLane,
   weekStart: string,
+  unscheduledLane: AuxiliaryWeekLane | undefined = 'backlog',
 ) {
   if (task.week_lane === lane) return true;
   return (
-    lane === 'backlog' &&
+    lane === unscheduledLane &&
     task.week_lane === 'scheduled' &&
     (!task.due_date || task.due_date < weekStart)
   );
@@ -4301,6 +4409,7 @@ function useMoveTaskInWeek(
     requestedPosition?: number,
   ) => {
     if (pending.has(task.id)) return;
+    await queryClient.cancelQueries({ queryKey: taskKeys.all(workspaceId) });
     const cachedTasks =
       queryClient.getQueryData<TaskOverview[]>(taskKeys.all(workspaceId)) ??
       tasks;
@@ -4379,6 +4488,7 @@ function useMoveTaskToDate(
   const queryClient = useQueryClient();
   return async (task: TaskOverview, dateKey: string) => {
     if (task.due_date === dateKey || pending.has(task.id)) return;
+    await queryClient.cancelQueries({ queryKey: taskKeys.all(workspaceId) });
     const cachedTasks =
       queryClient.getQueryData<TaskOverview[]>(taskKeys.all(workspaceId)) ??
       tasks;

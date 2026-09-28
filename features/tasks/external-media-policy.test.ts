@@ -7,10 +7,11 @@ const sourceRoots = ['app', 'components', 'features'].map((directory) =>
   join(process.cwd(), directory),
 );
 
-describe('external media policy', () => {
-  it('keeps browser code free from Supabase Storage and file inputs', () => {
+describe('media boundaries', () => {
+  it('keeps uploads confined to the private task attachment flow', () => {
     const source = sourceRoots
       .flatMap(listSourceFiles)
+      .filter((file) => !file.endsWith('task-media.tsx'))
       .map((file) => readFileSync(file, 'utf8'))
       .join('\n');
 

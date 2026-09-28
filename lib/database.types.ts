@@ -278,6 +278,7 @@ export type Database = {
           name: string;
           objective: string | null;
           owner_id: string | null;
+          primary_team_id: string | null;
           product_id: string | null;
           search_vector: unknown;
           slug: string;
@@ -300,6 +301,7 @@ export type Database = {
           name: string;
           objective?: string | null;
           owner_id?: string | null;
+          primary_team_id?: string | null;
           product_id?: string | null;
           search_vector?: unknown;
           slug: string;
@@ -322,6 +324,7 @@ export type Database = {
           name?: string;
           objective?: string | null;
           owner_id?: string | null;
+          primary_team_id?: string | null;
           product_id?: string | null;
           search_vector?: unknown;
           slug?: string;
@@ -1446,6 +1449,8 @@ export type Database = {
       };
       task_attachments: {
         Row: {
+          version: number;
+          description: string;
           bucket_id: string;
           created_at: string;
           delete_requested_at: string | null;
@@ -1467,6 +1472,8 @@ export type Database = {
           workspace_id: string;
         };
         Insert: {
+          version?: number;
+          description?: string;
           bucket_id?: string;
           created_at?: string;
           delete_requested_at?: string | null;
@@ -1488,6 +1495,8 @@ export type Database = {
           workspace_id: string;
         };
         Update: {
+          version?: number;
+          description?: string;
           bucket_id?: string;
           created_at?: string;
           delete_requested_at?: string | null;
@@ -2184,6 +2193,7 @@ export type Database = {
       };
       task_links: {
         Row: {
+          description: string;
           created_at: string;
           created_by: string;
           deleted_at: string | null;
@@ -2197,6 +2207,7 @@ export type Database = {
           workspace_id: string;
         };
         Insert: {
+          description?: string;
           created_at?: string;
           created_by: string;
           deleted_at?: string | null;
@@ -2210,6 +2221,7 @@ export type Database = {
           workspace_id: string;
         };
         Update: {
+          description?: string;
           created_at?: string;
           created_by?: string;
           deleted_at?: string | null;
@@ -2883,6 +2895,7 @@ export type Database = {
           slug: string;
           updated_at: string;
           version: number;
+          workspace_event_id: string | null;
           workspace_id: string;
         };
         Insert: {
@@ -2898,6 +2911,7 @@ export type Database = {
           slug: string;
           updated_at?: string;
           version?: number;
+          workspace_event_id?: string | null;
           workspace_id: string;
         };
         Update: {
@@ -2913,6 +2927,7 @@ export type Database = {
           slug?: string;
           updated_at?: string;
           version?: number;
+          workspace_event_id?: string | null;
           workspace_id?: string;
         };
         Relationships: [
@@ -3299,6 +3314,49 @@ export type Database = {
       };
     };
     Functions: {
+      create_operating_team_workspace: {
+        Args: {
+          p_workspace_id: string;
+          p_name: string;
+          p_slug: string;
+          p_description?: string;
+          p_color?: string;
+        };
+        Returns: Json;
+      };
+      archive_team_workspace: {
+        Args: { p_team_id: string; p_expected_version: number };
+        Returns: Json;
+      };
+      list_team_directory: { Args: { p_workspace_id: string }; Returns: Json };
+      list_team_projects: {
+        Args: {
+          p_workspace_id: string;
+          p_team_id?: string;
+          p_unassigned?: boolean;
+          p_search?: string;
+          p_offset?: number;
+          p_limit?: number;
+        };
+        Returns: Json;
+      };
+      set_project_team: {
+        Args: {
+          p_workspace_id: string;
+          p_project_id: string;
+          p_team_id: string | null;
+          p_expected_version: number;
+        };
+        Returns: Json;
+      };
+      create_team_project: {
+        Args: {
+          p_workspace_id: string;
+          p_team_id: string | null;
+          p_name: string;
+        };
+        Returns: Json;
+      };
       accept_workspace_invitation: { Args: { p_token: string }; Returns: Json };
       add_task_checklist_item: {
         Args: {
@@ -3317,6 +3375,36 @@ export type Database = {
           p_body: string;
           p_parent_comment_id?: string;
           p_task_id: string;
+        };
+        Returns: Json;
+      };
+      save_task_link_with_description: {
+        Args: {
+          p_task_id: string;
+          p_url: string;
+          p_label?: string;
+          p_description?: string;
+          p_link_id?: string;
+          p_expected_updated_at?: string;
+        };
+        Returns: Json;
+      };
+      prepare_task_media: {
+        Args: {
+          p_task_id: string;
+          p_file_name: string;
+          p_file_extension: string;
+          p_mime_type: string;
+          p_file_size: number;
+          p_description?: string;
+        };
+        Returns: Json;
+      };
+      update_task_media_description: {
+        Args: {
+          p_attachment_id: string;
+          p_description: string;
+          p_expected_version: number;
         };
         Returns: Json;
       };
@@ -3680,6 +3768,35 @@ export type Database = {
           p_status_id: string;
           p_task_id: string;
           p_workspace_id: string;
+        };
+        Returns: Json;
+      };
+      manage_task_board_column: {
+        Args: {
+          p_workspace_id: string;
+          p_expected_board_version: number;
+          p_action: string;
+          p_name?: string;
+          p_column_id?: string;
+          p_destination_id?: string;
+        };
+        Returns: Json;
+      };
+      delete_week_board_column: {
+        Args: {
+          p_workspace_id: string;
+          p_lane_key: string;
+          p_destination_key: string;
+          p_expected_board_version: number;
+        };
+        Returns: Json;
+      };
+      connect_week_board_column: {
+        Args: {
+          p_workspace_id: string;
+          p_week_lane_key: string;
+          p_status_id: string | null;
+          p_expected_board_version: number;
         };
         Returns: Json;
       };

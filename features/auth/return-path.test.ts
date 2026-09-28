@@ -20,6 +20,16 @@ describe('safeWorkspaceReturnPath', () => {
   });
 
   it.each([
+    '/pessoas?membro=55b9c7a7-11a8-45d4-9f75-fac6f2f6c4c4',
+    '/equipes',
+    '/equipes/55b9c7a7-11a8-45d4-9f75-fac6f2f6c4c4?visao=timeline&filtro=minhas',
+    '/projetos/55b9c7a7-11a8-45d4-9f75-fac6f2f6c4c4?visao=timeline',
+    '/equipe?visao=modelo',
+  ])('preserva o contexto de pessoas e equipes após autenticar: %s', (path) => {
+    expect(safeWorkspaceReturnPath(path)).toBe(path);
+  });
+
+  it.each([
     'https://example.com',
     '//example.com',
     '/\\example.com',

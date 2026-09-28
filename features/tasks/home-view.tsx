@@ -15,7 +15,8 @@ import {
   Target,
   TriangleAlert,
 } from 'lucide-react';
-import Link from 'next/link';
+import { NavigationLink as Link } from '@/components/navigation/navigation-link';
+import { TaskDetailLink } from './task-detail-link';
 import { useMemo, useState } from 'react';
 import { toast } from 'sonner';
 
@@ -163,7 +164,7 @@ export function HomeView({
   const focusTask = visiblePriorities[0] ?? null;
 
   return (
-    <main className={styles.stage}>
+    <section className={styles.stage}>
       <div className={styles.shell}>
         <DailyCanvas
           greeting={greeting}
@@ -212,7 +213,7 @@ export function HomeView({
           <ProjectRail events={orderedEvents.slice(1, 5)} />
         ) : null}
       </div>
-    </main>
+    </section>
   );
 }
 
@@ -283,14 +284,14 @@ function DailyCanvas({
           <Target aria-hidden="true" /> Agora
         </span>
         {task ? (
-          <Link
-            href={`/tarefa/${task.id}`}
-            scroll={false}
+          <TaskDetailLink
+            taskId={task.id}
+            workspaceId={task.workspace_id}
             className={styles.focusTitle}
           >
             <h2>{task.title}</h2>
             <ArrowUpRight aria-hidden="true" />
-          </Link>
+          </TaskDetailLink>
         ) : (
           <h2 className={styles.focusTitle}>Nenhuma tarefa aberta.</h2>
         )}
@@ -752,9 +753,9 @@ function HomeTaskRow({
       ) : (
         <span className={styles.taskCheck} aria-hidden="true" />
       )}
-      <Link
-        href={`/tarefa/${task.id}`}
-        scroll={false}
+      <TaskDetailLink
+        taskId={task.id}
+        workspaceId={task.workspace_id}
         className={styles.taskMain}
       >
         <strong>{task.title}</strong>
@@ -764,7 +765,7 @@ function HomeTaskRow({
           </i>
           {task.event_name ?? task.type_name}
         </span>
-      </Link>
+      </TaskDetailLink>
       <span className={cn(styles.taskDue, overdue && styles.taskDueLate)}>
         {overdue ? <TriangleAlert aria-hidden="true" /> : null}
         {formatDueDate(task.due_date)}

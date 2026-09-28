@@ -1,0 +1,165 @@
+{
+  "project_id": "cmrufxuwrracarokrcif",
+  "migrations": [
+    {
+      "version": "20260822000100",
+      "name": "p0_core"
+    },
+    {
+      "version": "20260822205006",
+      "name": "history_rpc_hardening"
+    },
+    {
+      "version": "20260822205609",
+      "name": "workspace_members_hardening"
+    },
+    {
+      "version": "20260822205610",
+      "name": "task_due_at_overview"
+    },
+    {
+      "version": "20260822212526",
+      "name": "task_collaboration"
+    },
+    {
+      "version": "20260822213713",
+      "name": "task_collaboration_followup"
+    },
+    {
+      "version": "20260822220538",
+      "name": "resources_search"
+    },
+    {
+      "version": "20260822220539",
+      "name": "task_collaboration_review_fixes"
+    },
+    {
+      "version": "20260822223702",
+      "name": "task_collaboration_realtime_hardening"
+    },
+    {
+      "version": "20260822223746",
+      "name": "resources_permissions_categories"
+    },
+    {
+      "version": "20260822223748",
+      "name": "search_prefix"
+    },
+    {
+      "version": "20260822235316",
+      "name": "resource_relations_categories"
+    },
+    {
+      "version": "20260822235318",
+      "name": "task_attachments_storage"
+    },
+    {
+      "version": "20260822235321",
+      "name": "events_products_operational"
+    },
+    {
+      "version": "20260823003447",
+      "name": "workspace_team_activation"
+    },
+    {
+      "version": "20260823010000",
+      "name": "global_task_context"
+    },
+    {
+      "version": "20260825090000",
+      "name": "external_media_links_rich_text"
+    },
+    {
+      "version": "20260825103000",
+      "name": "task_overview_card_metrics"
+    },
+    {
+      "version": "20260825110000",
+      "name": "task_overview_description_preview"
+    },
+    {
+      "version": "20260825123000",
+      "name": "week_board_operational_lanes"
+    },
+    {
+      "version": "20260926201948",
+      "name": "task_board_ordering"
+    },
+    {
+      "version": "20260926201953",
+      "name": "project_timeline_planning"
+    },
+    {
+      "version": "20260926201959",
+      "name": "project_timeline_milestone_management"
+    },
+    {
+      "version": "20260926212351",
+      "name": "configurable_task_boards"
+    },
+    {
+      "version": "20260926212840",
+      "name": "task_card_archive"
+    },
+    {
+      "version": "20260926213022",
+      "name": "board_connection_conflicts"
+    },
+    {
+      "version": "20260926213913",
+      "name": "team_operating_model_foundation"
+    },
+    {
+      "version": "20260926213923",
+      "name": "task_context_updates"
+    },
+    {
+      "version": "20260926213925",
+      "name": "task_custom_fields"
+    },
+    {
+      "version": "20260926213927",
+      "name": "task_steps_and_subtasks"
+    },
+    {
+      "version": "20260926213930",
+      "name": "profile_identity"
+    },
+    {
+      "version": "20260926213933",
+      "name": "workspace_settings"
+    },
+    {
+      "version": "20260926213939",
+      "name": "task_steps_management"
+    },
+    {
+      "version": "20260926213943",
+      "name": "link_board_week_special_lanes"
+    },
+    {
+      "version": "20260926214344",
+      "name": "security_advisor_hardening"
+    },
+    {
+      "version": "20260926221412",
+      "name": "task_board_column_lifecycle"
+    },
+    {
+      "version": "20260926221644",
+      "name": "restore_configured_board_sync"
+    },
+    {
+      "version": "20260927012520",
+      "name": "week_column_lifecycle"
+    },
+    {
+      "version": "20260927234152",
+      "name": "task_media_descriptions"
+    },
+    {
+      "version": "20260927235815",
+      "name": "task_media_description_realtime"
+    }
+  ]
+}

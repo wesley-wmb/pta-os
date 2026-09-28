@@ -14,6 +14,12 @@ export default defineConfig({
   },
   resolve: {
     alias: {
+      'server-only': fileURLToPath(
+        new URL(
+          './node_modules/next/dist/compiled/server-only/empty.js',
+          import.meta.url,
+        ),
+      ),
       '@': fileURLToPath(new URL('./', import.meta.url)),
     },
   },

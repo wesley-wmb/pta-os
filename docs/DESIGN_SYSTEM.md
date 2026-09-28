@@ -207,3 +207,10 @@ As referências específicas desta decisão são [Apple — Drag and drop](https
 [Apple — Gestures](https://developer.apple.com/design/human-interface-guidelines/gestures),
 [Atlassian — Pragmatic drag and drop design guidelines](https://atlassian.design/components/pragmatic-drag-and-drop/design-guidelines/)
 e [W3C — Dragging Movements](https://www.w3.org/WAI/WCAG22/Understanding/dragging-movements).
+
+## Cards operacionais — 27/09/2026
+
+- Ações do card ficam no menu contextual (botão direito, Shift+F10 ou toque prolongado). O arraste permanece disponível por mouse, teclado e controle de toque.
+- No Kanban e Semana, título e tags têm prioridade; a descrição mantém sua prévia e o status redundante fica no detalhe. A altura permanece automática, sem altura mínima, acompanhando o conteúdo. Bloqueios continuam explícitos. Checklist aparece como contagem no rodapé, sem barra decorativa.
+- Tags usam texto e cores por significado: prioridade urgente vermelha, projeto azul, tipo violeta, produto teal, com variantes claras/escuras. Não dependem apenas da cor.
+- Referências: https://www.radix-ui.com/primitives/docs/components/context-menu e https://www.nngroup.com/articles/progressive-disclosure/.

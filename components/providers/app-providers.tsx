@@ -6,6 +6,7 @@ import { Toaster } from 'sonner';
 
 import { ThemeProvider, useTheme } from '@/components/theme/theme-provider';
 import { TooltipProvider } from '@/components/ui/tooltip';
+import { useAuthCacheBoundary } from './use-auth-cache-boundary';
 
 export function AppProviders({ children }: { children: React.ReactNode }) {
   const [queryClient] = useState(
@@ -20,6 +21,8 @@ export function AppProviders({ children }: { children: React.ReactNode }) {
         },
       }),
   );
+
+  useAuthCacheBoundary(queryClient);
 
   return (
     <ThemeProvider>

@@ -138,3 +138,28 @@ describe('BoardColumnControls', () => {
     expect(onUpdate).not.toHaveBeenCalled();
   });
 });
+
+it('usa o nome configurado da Semana na explicação da conexão', async () => {
+  const user = userEvent.setup();
+  render(
+    <BoardColumnControls
+      columnId="todo"
+      value={{ ...value, weekLink: 'important' }}
+      weekLinkOptions={[
+        { value: 'none', label: 'Sem vínculo' },
+        { value: 'important', label: 'Referências da equipe' },
+      ]}
+      onUpdate={vi.fn()}
+      onOpenAutomations={vi.fn()}
+      onMove={vi.fn()}
+    />,
+  );
+  await user.click(
+    screen.getByRole('button', { name: 'Ações da coluna A fazer' }),
+  );
+  await user.click(screen.getByText('Automações'));
+  expect(screen.getByText(/Quando um card entrar/)).toHaveTextContent(
+    'Referências da equipe',
+  );
+  expect(screen.queryByText('Links importantes')).not.toBeInTheDocument();
+});

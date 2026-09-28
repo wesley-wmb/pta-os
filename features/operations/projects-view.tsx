@@ -327,7 +327,7 @@ export function ProjectsView({
         </div>
       </header>
 
-      <main className="px-4 py-3 sm:px-6">
+      <section aria-label="Portfólio de projetos" className="px-4 py-3 sm:px-6">
         <div className="mb-2 flex items-center justify-between gap-3">
           <h2 className="sr-only">Portfólio da equipe</h2>
           <p
@@ -362,7 +362,7 @@ export function ProjectsView({
             onOpen={openProject}
           />
         )}
-      </main>
+      </section>
 
       <EventEditorDialog
         key={createOpen ? 'project-create-open' : 'project-create-closed'}

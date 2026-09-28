@@ -13,6 +13,8 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock('next/navigation', () => ({
+  usePathname: () => '/projetos/0cbbeb33-dfa5-48e2-a71a-28dd154b6264',
+  useSearchParams: () => new URLSearchParams('visao=timeline'),
   useRouter: () => ({ push: mocks.push, refresh: mocks.refresh }),
 }));
 
@@ -76,6 +78,29 @@ afterEach(() => {
 });
 
 describe('NewTaskDialog', () => {
+  it('preserva a data ao posicionar uma tarefa em uma faixa operacional', async () => {
+    mocks.rpc
+      .mockResolvedValueOnce({
+        data: { id: createdTaskId, task_number: 10, version: 1 },
+        error: null,
+      })
+      .mockResolvedValueOnce({ data: {}, error: null });
+    renderDialog({
+      initialWeekLane: 'important',
+      initialDueDate: '2026-10-01',
+    });
+    await submitTask();
+    await waitFor(() =>
+      expect(mocks.rpc).toHaveBeenCalledWith(
+        'move_task_in_week',
+        expect.objectContaining({
+          p_due_date: '2026-10-01',
+          p_week_lane: 'important',
+          p_expected_version: 1,
+        }),
+      ),
+    );
+  });
   it('cria uma demanda básica pelo RPC legado quando a migration global ainda não existe', async () => {
     mocks.rpc
       .mockResolvedValueOnce({
@@ -112,9 +137,12 @@ describe('NewTaskDialog', () => {
     );
     expect(mocks.toastError).not.toHaveBeenCalled();
     expect(mocks.toastSuccess).toHaveBeenCalledWith('PTA-000007 criada.');
-    expect(mocks.push).toHaveBeenCalledWith(`/tarefa/${createdTaskId}`, {
-      scroll: false,
-    });
+    expect(mocks.push).toHaveBeenCalledWith(
+      `/tarefa/${createdTaskId}?retorno=${encodeURIComponent('/projetos/0cbbeb33-dfa5-48e2-a71a-28dd154b6264?visao=timeline')}`,
+      {
+        scroll: false,
+      },
+    );
     expect(mocks.refresh).toHaveBeenCalledOnce();
   });
 
@@ -175,9 +203,12 @@ describe('NewTaskDialog', () => {
     );
     expect(mocks.toastError).not.toHaveBeenCalled();
     expect(mocks.toastSuccess).toHaveBeenCalledWith('PTA-000008 criada.');
-    expect(mocks.push).toHaveBeenCalledWith(`/tarefa/${createdTaskId}`, {
-      scroll: false,
-    });
+    expect(mocks.push).toHaveBeenCalledWith(
+      `/tarefa/${createdTaskId}?retorno=${encodeURIComponent('/projetos/0cbbeb33-dfa5-48e2-a71a-28dd154b6264?visao=timeline')}`,
+      {
+        scroll: false,
+      },
+    );
   });
 
   it('cria uma tarefa vinculada para outro membro sem abandonar a tarefa pai', async () => {

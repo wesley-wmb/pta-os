@@ -148,6 +148,7 @@ export type TaskCommentsPage = {
 export type TaskCommentsPageInfo = Omit<TaskCommentsPage, 'comments'>;
 
 export type TaskLink = {
+  description?: string;
   id: string;
   url: string;
   label: string | null;

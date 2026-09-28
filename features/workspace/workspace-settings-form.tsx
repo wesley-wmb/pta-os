@@ -174,7 +174,7 @@ export function WorkspaceSettingsForm({
         </div>
 
         <Button asChild variant="ghost" className="mt-3 w-full justify-start">
-          <Link href="/equipe">
+          <Link href="/pessoas">
             <UsersRound aria-hidden="true" />
             Pessoas e permissões
           </Link>

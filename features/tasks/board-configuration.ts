@@ -333,6 +333,39 @@ export function useUpdateTaskBoardColumn(workspaceId: string) {
   });
 }
 
+export function useManageTaskBoardColumn(workspaceId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: {
+      version: number;
+      action: 'create' | 'delete';
+      name?: string;
+      columnId?: string;
+      destinationId?: string;
+    }) => {
+      const { data, error } = await createClient().rpc(
+        'manage_task_board_column',
+        {
+          p_workspace_id: workspaceId,
+          p_expected_board_version: input.version,
+          p_action: input.action,
+          p_name: input.name,
+          p_column_id: input.columnId,
+          p_destination_id: input.destinationId,
+        },
+      );
+      if (error) throw error;
+      return parseTaskBoardConfiguration(data);
+    },
+    onSuccess: async (configuration) => {
+      await applyConfigurationMutation(queryClient, workspaceId, configuration);
+      await queryClient.invalidateQueries({
+        predicate: (query) => query.queryKey.includes(workspaceId),
+      });
+    },
+  });
+}
+
 export function useReorderTaskBoardColumns(workspaceId: string) {
   const queryClient = useQueryClient();
   return useMutation({
@@ -372,6 +405,57 @@ export function useSetTaskBoardLaneLink(workspaceId: string) {
         },
       );
       if (error) throw normalizeMutationError(error);
+      return parseTaskBoardConfiguration(data);
+    },
+    onSuccess: (configuration) =>
+      applyConfigurationMutation(queryClient, workspaceId, configuration),
+  });
+}
+
+export function useDeleteWeekBoardColumn(workspaceId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: {
+      lane: TaskWeekLane;
+      destination: TaskWeekLane;
+      version: number;
+    }) => {
+      assertConfigurationIsWritable(queryClient, workspaceId);
+      const { data, error } = await createClient().rpc(
+        'delete_week_board_column',
+        {
+          p_workspace_id: workspaceId,
+          p_lane_key: input.lane,
+          p_destination_key: input.destination,
+          p_expected_board_version: input.version,
+        },
+      );
+      if (error) throw error;
+      return parseTaskBoardConfiguration(data);
+    },
+    onSuccess: (configuration) =>
+      applyConfigurationMutation(queryClient, workspaceId, configuration),
+  });
+}
+
+export function useConnectWeekBoardColumn(workspaceId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: {
+      lane: TaskWeekLane;
+      statusId: string | null;
+      version: number;
+    }) => {
+      const { data, error } = await createClient().rpc(
+        'connect_week_board_column',
+        {
+          p_workspace_id: workspaceId,
+          p_week_lane_key: input.lane,
+          p_status_id: input.statusId,
+          p_expected_board_version: input.version,
+        },
+      );
+      if (error) throw error;
       return parseTaskBoardConfiguration(data);
     },
     onSuccess: (configuration) =>

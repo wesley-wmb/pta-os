@@ -155,3 +155,32 @@ describe('TaskCardContent', () => {
     ).toHaveClass('p-3');
   });
 });
+
+it('simplifica o Kanban sem esconder tags, prazo ou contagem da checklist', () => {
+  render(
+    <TaskCardContent
+      simplified
+      task={{
+        ...task,
+        priority: 'urgent',
+        event_name: 'teste',
+        type_name: 'Criativo',
+        description_preview: 'Descrição detalhada',
+        checklist_total: 2,
+        checklist_completed: 2,
+        due_date: '2026-09-24',
+      }}
+      nowIso={nowIso}
+      today="2026-09-24"
+    />,
+  );
+  expect(screen.getByText('Urgente')).toBeVisible();
+  expect(screen.getByText('teste')).toBeVisible();
+  expect(screen.getByText('Criativo')).toBeVisible();
+  expect(screen.getByText('Descrição detalhada')).toBeVisible();
+  expect(screen.queryByText('A fazer')).not.toBeInTheDocument();
+  expect(screen.queryByRole('progressbar')).not.toBeInTheDocument();
+  expect(
+    screen.getByLabelText('Checklist: 2 de 2 itens concluídos'),
+  ).toBeVisible();
+});

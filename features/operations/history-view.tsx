@@ -22,6 +22,7 @@ import { useDeferredValue, useMemo, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { dateFromKey } from '@/features/tasks/date-utils';
+import { sanitizeSpreadsheetCell } from '@/features/tasks/task-pipeline-model';
 import { cn } from '@/lib/utils';
 
 import { OperationEmptyState } from './shared';
@@ -123,7 +124,7 @@ export function HistoryView({ data }: { data: HistoryPageData }) {
           >
             <option value="7">Últimos 7 dias</option>
             <option value="30">Últimos 30 dias</option>
-            <option value="all">Todo o período</option>
+            <option value="all">Todos os registros carregados</option>
           </select>
           <Button
             type="button"
@@ -138,6 +139,9 @@ export function HistoryView({ data }: { data: HistoryPageData }) {
         </div>
       </div>
 
+      <p className="mb-3 text-xs text-muted-foreground">
+        Exibindo até 50 movimentações recentes. Filtros e exportação usam os registros carregados.
+      </p>
       <div className="grid overflow-hidden rounded-2xl border bg-card  sm:grid-cols-2 xl:grid-cols-4">
         <SummaryMetric
           label="Registros carregados"
@@ -343,7 +347,7 @@ function TaskReference({ item }: { item: ActivitySummary }) {
   if (item.taskTitle && !item.taskArchived) {
     return (
       <Link
-        href={`/tarefa/${item.taskId}`}
+        href={`/tarefa/${item.taskId}?retorno=%2Fhistorico`}
         scroll={false}
         className="group inline-flex min-h-11 max-w-full items-center gap-1.5 rounded-lg text-[15px] font-semibold text-foreground underline-offset-4 transition-colors hover:text-primary hover:underline focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/40 sm:min-h-0"
       >
@@ -431,7 +435,7 @@ function activityActionLabel(action: string) {
 }
 
 function csvCell(value: string) {
-  return `"${value.replaceAll('"', '""')}"`;
+  return `"${sanitizeSpreadsheetCell(value).replaceAll('"', '""')}"`;
 }
 
 function summarizeActivity(activity: ActivitySummary[]) {

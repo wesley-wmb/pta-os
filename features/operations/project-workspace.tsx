@@ -39,7 +39,11 @@ import {
   UsersRound,
 } from 'lucide-react';
 import Link from 'next/link';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import {
+  taskHrefWithReturn,
+  taskReturnContext,
+} from '@/features/tasks/task-return-path';
 import {
   useCallback,
   useDeferredValue,
@@ -95,6 +99,13 @@ import {
 } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+} from '@/components/ui/sheet';
 import {
   calendarMonthGridKeys,
   currentDateInTimeZone,
@@ -221,6 +232,11 @@ function subscribeToClientEnvironment() {
 
 export function ProjectWorkspace({
   projectId,
+  parentTeam = null,
+  teamSettings,
+  teamMembers,
+  teamName,
+  memberCount,
   initialData,
   workspaceId,
   members,
@@ -232,6 +248,11 @@ export function ProjectWorkspace({
   taskPrefix,
 }: {
   projectId: string;
+  parentTeam?: { id: string; name: string } | null;
+  teamSettings?: ReactNode;
+  teamMembers?: ReactNode;
+  teamName?: string;
+  memberCount?: number;
   initialData: EventDetail;
   workspaceId: string;
   members: WorkspaceMember[];
@@ -242,7 +263,7 @@ export function ProjectWorkspace({
   timezone: string;
   taskPrefix: string;
 }) {
-  const router = useRouter();
+  const pathname = usePathname();
   const searchParams = useSearchParams();
   const requestedView = searchParams.get('visao');
   const initialView = views.some((view) => view.value === requestedView)
@@ -250,6 +271,7 @@ export function ProjectWorkspace({
     : 'overview';
   const view = initialView;
   const [taskOpen, setTaskOpen] = useState(false);
+  const [appearanceOpen, setAppearanceOpen] = useState(false);
   const [milestoneOpen, setMilestoneOpen] = useState(false);
   const [taskSearch, setTaskSearch] = useState('');
   const [assignee, setAssignee] = useState('all');
@@ -283,14 +305,15 @@ export function ProjectWorkspace({
   const navigateToView = useCallback(
     (nextView: ProjectView) => {
       const params = new URLSearchParams(searchParams.toString());
-      if (nextView === 'overview') params.delete('visao');
-      else params.set('visao', nextView);
+      params.set('visao', nextView);
       const suffix = params.toString();
-      router.replace(`/projetos/${projectId}${suffix ? `?${suffix}` : ''}`, {
-        scroll: false,
-      });
+      window.history.replaceState(
+        null,
+        '',
+        `${pathname}${suffix ? `?${suffix}` : ''}`,
+      );
     },
-    [projectId, router, searchParams],
+    [pathname, searchParams],
   );
 
   const commitViewLayout = useCallback(
@@ -317,19 +340,17 @@ export function ProjectWorkspace({
         views.some((item) => item.value === saved) &&
         !viewLayout.hidden.includes(saved as ProjectView)
       ) {
-        router.replace(`/projetos/${projectId}?visao=${saved}`, {
-          scroll: false,
-        });
+        window.history.replaceState(null, '', `${pathname}?visao=${saved}`);
       }
     } catch {
-      // Uma preferência local inválida não impede a abertura do projeto.
+      // Uma preferência local inválida não impede a abertura da área de trabalho.
     }
   }, [
     currentUserId,
+    pathname,
     hasHydrated,
     projectId,
     requestedView,
-    router,
     viewLayout,
     workspaceId,
   ]);
@@ -416,18 +437,47 @@ export function ProjectWorkspace({
   return (
     <div className="flex min-h-full min-w-0 flex-col">
       <header className="border-b bg-background/95">
+        <nav
+          aria-label="Localização da área de trabalho"
+          className="flex items-center gap-2 px-4 pt-3 text-xs text-muted-foreground sm:px-6"
+        >
+          <Link href="/equipes" className="hover:text-foreground">
+            Equipes
+          </Link>
+          <span aria-hidden="true">/</span>
+          <Link
+            href={
+              parentTeam
+                ? `/equipes/${parentTeam.id}`
+                : '/equipes?filtro=sem-equipe'
+            }
+            className="hover:text-foreground"
+          >
+            {parentTeam?.name ?? 'Sem equipe'}
+          </Link>
+        </nav>
         <div className="px-4 py-2.5 sm:px-6">
           <div className="flex min-w-0 flex-wrap items-center justify-between gap-3">
             <div className="flex min-w-0 flex-1 basis-64 items-center gap-2.5">
               <Link
-                href="/projetos"
-                aria-label="Voltar para projetos"
+                href={
+                  teamName
+                    ? '/equipes'
+                    : parentTeam
+                      ? `/equipes/${parentTeam.id}`
+                      : '/equipes'
+                }
+                aria-label={
+                  teamName
+                    ? 'Voltar para equipes'
+                    : 'Voltar para os projetos da equipe'
+                }
                 className="grid size-8 shrink-0 place-items-center rounded-lg bg-primary text-primary-foreground transition-transform active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
                 <LayoutGrid aria-hidden="true" className="size-4" />
               </Link>
               <h1 className="min-w-0 truncate text-lg font-semibold tracking-[-0.02em]">
-                {detail.event.name}
+                {teamName ?? detail.event.name}
               </h1>
               <div className="flex shrink-0 items-center gap-1.5">
                 <StatusBadge value={detail.event.status} />
@@ -439,16 +489,14 @@ export function ProjectWorkspace({
             </div>
 
             <div className="flex shrink-0 justify-end">
-              {detail.capabilities.canEdit ? (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => changeView('settings')}
-                >
-                  <Pencil aria-hidden="true" />
-                  Personalizar
-                </Button>
-              ) : null}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setAppearanceOpen(true)}
+              >
+                <Pencil aria-hidden="true" />
+                Personalizar
+              </Button>
             </div>
           </div>
         </div>
@@ -488,10 +536,12 @@ export function ProjectWorkspace({
 
           <TabsContent value="overview" className="mt-0">
             <ProjectOverview
+              memberCount={memberCount}
               detail={detail}
               onAddTask={() => setTaskOpen(true)}
               onAddMilestone={() => openMilestone()}
-              onOpenList={() => changeView('list')}
+              workspaceId={workspaceId}
+              onNavigate={changeView}
             />
           </TabsContent>
           <TabsContent
@@ -537,14 +587,14 @@ export function ProjectWorkspace({
           <TabsContent value="resources" className="mt-0">
             <SectionHeading
               title="Recursos"
-              description="Links, documentos e referências relacionados ao projeto."
+              description="Links, documentos e referências relacionados à área de trabalho."
               action={{ label: 'Abrir central', href: '/recursos' }}
             />
             <ResourceList items={detail.resources} />
           </TabsContent>
           <TabsContent value="team" className="mt-0">
             <SectionHeading
-              title="Equipe do projeto"
+              title="Participantes"
               description="Pessoas responsáveis pela execução e acompanhamento."
               action={
                 detail.capabilities.canEdit
@@ -555,17 +605,19 @@ export function ProjectWorkspace({
                   : undefined
               }
             />
-            <TeamList items={detail.team} />
+            {teamMembers ?? <TeamList items={detail.team} />}
           </TabsContent>
           <TabsContent value="activity" className="mt-0">
             <SectionHeading
               title="Atividade"
-              description="Histórico das mudanças importantes deste projeto."
+              description="Histórico das mudanças importantes desta área de trabalho."
             />
             <HistoryList items={detail.history} />
           </TabsContent>
           <TabsContent value="settings" className="mt-0">
+            {teamSettings}
             <ProjectSettings
+              teamMode={Boolean(teamName)}
               key={`${detail.event.id}-${detail.event.version}`}
               detail={detail}
               workspaceId={workspaceId}
@@ -586,6 +638,17 @@ export function ProjectWorkspace({
         contextId={projectId}
         members={assignableMembers}
         statuses={statuses}
+      />
+      <ProjectAppearance
+        open={appearanceOpen}
+        onOpenChange={setAppearanceOpen}
+        layout={viewLayout}
+        onHide={hideView}
+        onShow={restoreView}
+        onMove={moveView}
+        currentUserId={currentUserId}
+        workspaceId={workspaceId}
+        projectId={projectId}
       />
       <MilestoneDialog
         key={milestoneOpen ? 'open' : 'closed'}
@@ -856,8 +919,8 @@ function TaskToolbar({
         <Input
           value={search}
           onChange={(event) => setSearch(event.target.value)}
-          placeholder="Buscar tarefas neste projeto"
-          aria-label="Buscar tarefas neste projeto"
+          placeholder="Buscar tarefas"
+          aria-label="Buscar tarefas"
           className="h-9 bg-transparent pl-9 shadow-none"
         />
       </div>
@@ -907,7 +970,7 @@ function ProjectRoadmap({
   const queryClient = useQueryClient();
   const router = useRouter();
   const timelineQuery = useProjectTimeline(workspaceId, projectId);
-  const taskOverviewQuery = useTasks(workspaceId);
+  const taskOverviewQuery = useTasks(workspaceId, projectId);
   const hasHydrated = useSyncExternalStore(
     subscribeToClientEnvironment,
     () => true,
@@ -1115,6 +1178,41 @@ function ProjectRoadmap({
         onAddTask={onAddTask}
         onAddPhase={() => setSelectedPhase('new')}
         onEditPhase={setSelectedPhase}
+        onPhaseChange={async (phase, startDate, endDate) => {
+          try {
+            const { error } = await createClient().rpc('update_event_phase', {
+              p_workspace_id: workspaceId,
+              p_phase_id: phase.id,
+              p_expected_version: phase.version,
+              p_patch: { start_date: startDate, end_date: endDate },
+            });
+            if (error) throw error;
+            await Promise.all([
+              queryClient.invalidateQueries({
+                queryKey: portfolioKeys.timeline(workspaceId, projectId),
+              }),
+              queryClient.invalidateQueries({
+                queryKey: portfolioKeys.event(workspaceId, projectId),
+              }),
+            ]);
+            toast.success('Período da fase atualizado.');
+          } catch (error) {
+            toast.error(
+              getPhaseUpdateErrorMessage({
+                message:
+                  error && typeof error === 'object' && 'message' in error
+                    ? String(error.message)
+                    : String(error),
+                code:
+                  error && typeof error === 'object' && 'code' in error
+                    ? String(error.code)
+                    : undefined,
+              }),
+            );
+            void timelineQuery.refetch();
+            throw error;
+          }
+        }}
         onAddMilestone={() => setTimelineMilestoneOpen(true)}
         onToggleMilestone={(milestone) => void toggleMilestone(milestone)}
         onEditMilestone={setEditingMilestone}
@@ -1265,7 +1363,7 @@ function PhaseDialog({
             <DialogDescription>
               {editing
                 ? 'Ajuste o intervalo, o nome e a cor usados no cronograma.'
-                : 'Crie uma etapa real do projeto, como Captação, Vendas ou Entrega.'}
+                : 'Crie uma etapa real da área de trabalho, como Captação, Vendas ou Entrega.'}
             </DialogDescription>
           </DialogHeader>
           <form
@@ -1415,29 +1513,31 @@ function PhaseDialog({
 
 const defaultProjectViews = views.filter((item) => item.value !== 'settings');
 
-function ProjectSettings({
-  detail,
-  workspaceId,
+function ProjectAppearance({
+  open,
+  onOpenChange,
+  layout,
+  onHide,
+  onShow,
+  onMove,
   currentUserId,
-  members,
-  products,
-  onNavigate,
+  workspaceId,
+  projectId,
 }: {
-  detail: EventDetail;
-  workspaceId: string;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  layout: ProjectViewLayout;
+  onHide: (view: ProjectView) => void;
+  onShow: (view: ProjectView) => void;
+  onMove: (from: ProjectView, to: ProjectView) => void;
   currentUserId: string;
-  members: WorkspaceMember[];
-  products: ProductSummary[];
-  onNavigate: (view: ProjectView) => void;
+  workspaceId: string;
+  projectId: string;
 }) {
-  const router = useRouter();
-  const queryClient = useQueryClient();
-  const [pending, setPending] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const preferenceKey = projectViewPreferenceKey(
     currentUserId,
     workspaceId,
-    detail.event.id,
+    projectId,
   );
   const defaultView = useSyncExternalStore(
     subscribeToProjectView,
@@ -1453,6 +1553,139 @@ function ProjectSettings({
     }, [preferenceKey]),
     () => 'overview',
   );
+  function updateDefaultView(nextView: string) {
+    const safeView = defaultProjectViews.some((item) => item.value === nextView)
+      ? (nextView as ProjectView)
+      : 'overview';
+    try {
+      window.localStorage.setItem(preferenceKey, safeView);
+      window.dispatchEvent(new Event(PROJECT_VIEW_EVENT));
+      toast.success('Visão inicial atualizada.');
+    } catch {
+      toast.error('O navegador não permitiu salvar esta preferência.');
+    }
+  }
+
+  const visible = visibleProjectViews(layout);
+  return (
+    <Sheet open={open} onOpenChange={onOpenChange}>
+      <SheetContent className="gap-0 data-[side=right]:w-full data-[side=right]:sm:max-w-[440px]">
+        <SheetHeader className="border-b p-6 pr-12">
+          <SheetTitle>Personalizar área de trabalho</SheetTitle>
+          <SheetDescription>
+            Organize sua forma de trabalhar. As preferências são salvas neste
+            navegador, somente para você.
+          </SheetDescription>
+        </SheetHeader>
+        <div className="min-h-0 flex-1 overflow-y-auto p-6">
+          <Label htmlFor="project-default-view">Abrir esta área em</Label>
+          <Select
+            value={defaultView}
+            onValueChange={(next) => {
+              onShow(next as ProjectView);
+              updateDefaultView(next);
+            }}
+          >
+            <SelectTrigger id="project-default-view" className="mt-2 w-full">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {defaultProjectViews.map((item) => (
+                <SelectItem key={item.value} value={item.value}>
+                  {item.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <div className="mb-3 mt-8">
+            <h3 className="font-semibold">Abas da área de trabalho</h3>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Escolha o que aparece e ajuste a ordem.
+            </p>
+          </div>
+          <div className="divide-y divide-border/50">
+            {layout.order.map((value) => {
+              const item = views.find((item) => item.value === value)!;
+              const index = visible.indexOf(value);
+              const shown = index >= 0;
+              return (
+                <div key={value} className="flex min-h-14 items-center gap-3">
+                  <Checkbox
+                    id={`appearance-${value}`}
+                    checked={shown}
+                    disabled={shown && visible.length === 1}
+                    onCheckedChange={(checked) =>
+                      checked ? onShow(value) : onHide(value)
+                    }
+                  />
+                  <item.icon
+                    aria-hidden="true"
+                    className="size-4 text-muted-foreground"
+                  />
+                  <Label
+                    htmlFor={`appearance-${value}`}
+                    className="flex-1 cursor-pointer"
+                  >
+                    {item.label}
+                  </Label>
+                  {shown && (
+                    <div className="flex">
+                      <Button
+                        variant="ghost"
+                        size="icon-sm"
+                        aria-label={`Mover ${item.label} para a esquerda`}
+                        disabled={index === 0}
+                        onClick={() => onMove(value, visible[index - 1])}
+                      >
+                        <ChevronLeft aria-hidden="true" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon-sm"
+                        aria-label={`Mover ${item.label} para a direita`}
+                        disabled={index === visible.length - 1}
+                        onClick={() => onMove(value, visible[index + 1])}
+                      >
+                        <ChevronRight aria-hidden="true" />
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+        <div className="flex items-center justify-between border-t p-5">
+          <span className="text-xs text-muted-foreground">
+            Salvo automaticamente
+          </span>
+          <Button onClick={() => onOpenChange(false)}>Concluir</Button>
+        </div>
+      </SheetContent>
+    </Sheet>
+  );
+}
+
+function ProjectSettings({
+  teamMode = false,
+  detail,
+  workspaceId,
+  members,
+  products,
+  onNavigate,
+}: {
+  detail: EventDetail;
+  workspaceId: string;
+  currentUserId: string;
+  members: WorkspaceMember[];
+  products: ProductSummary[];
+  onNavigate: (view: ProjectView) => void;
+  teamMode?: boolean;
+}) {
+  const router = useRouter();
+  const queryClient = useQueryClient();
+  const [pending, setPending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [name, setName] = useState(detail.event.name);
   const [status, setStatus] = useState(detail.event.status);
   const [healthOverride, setHealthOverride] = useState<
@@ -1471,17 +1704,33 @@ function ProjectSettings({
     () => new Set(detail.team.map((member) => member.id)),
   );
 
-  function updateDefaultView(nextView: string) {
-    const safeView = defaultProjectViews.some((item) => item.value === nextView)
-      ? (nextView as ProjectView)
-      : 'overview';
-    try {
-      window.localStorage.setItem(preferenceKey, safeView);
-      window.dispatchEvent(new Event(PROJECT_VIEW_EVENT));
-      toast.success('Visão inicial atualizada.');
-    } catch {
-      toast.error('O navegador não permitiu salvar esta preferência.');
-    }
+  const dirty =
+    name !== detail.event.name ||
+    status !== detail.event.status ||
+    healthOverride !== (detail.event.healthOverride ?? 'auto') ||
+    productId !== (detail.event.productId ?? 'none') ||
+    ownerId !== (detail.event.ownerId ?? 'none') ||
+    startDate !== (detail.event.startDate ?? '') ||
+    endDate !== (detail.event.endDate ?? '') ||
+    summary !== (detail.event.summary ?? '') ||
+    objective !== (detail.event.objective ?? '') ||
+    successMetric !== (detail.event.successMetric ?? '') ||
+    teamIds.size !== detail.team.length ||
+    detail.team.some((member) => !teamIds.has(member.id));
+
+  function discardChanges() {
+    setName(detail.event.name);
+    setStatus(detail.event.status);
+    setHealthOverride(detail.event.healthOverride ?? 'auto');
+    setProductId(detail.event.productId ?? 'none');
+    setOwnerId(detail.event.ownerId ?? 'none');
+    setStartDate(detail.event.startDate ?? '');
+    setEndDate(detail.event.endDate ?? '');
+    setSummary(detail.event.summary ?? '');
+    setObjective(detail.event.objective ?? '');
+    setSuccessMetric(detail.event.successMetric ?? '');
+    setTeamIds(new Set(detail.team.map((member) => member.id)));
+    setError(null);
   }
 
   function toggleMember(memberId: string, checked: boolean) {
@@ -1538,7 +1787,7 @@ function ProjectSettings({
       setError(
         result.error.message.includes('PTA_VERSION_CONFLICT')
           ? 'Este projeto mudou em outra sessão. Recarregue a página antes de salvar novamente.'
-          : 'Não foi possível salvar as configurações do projeto.',
+          : 'Não foi possível salvar as configurações da área de trabalho.',
       );
       return;
     }
@@ -1551,54 +1800,21 @@ function ProjectSettings({
     await queryClient.invalidateQueries({
       queryKey: portfolioKeys.event(workspaceId, detail.event.id),
     });
-    toast.success('Configurações do projeto salvas.');
+    toast.success('Configurações da área de trabalho salvas.');
     router.refresh();
   }
 
   return (
-    <div className="mx-auto grid max-w-6xl items-start gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
+    <div className="mx-auto grid max-w-[1100px] items-start gap-10 lg:grid-cols-[minmax(0,1fr)_240px]">
       <div className="space-y-6">
-        <section className="rounded-2xl border bg-card p-5 sm:p-6">
-          <div className="flex items-start gap-3">
-            <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary">
-              <Settings2 aria-hidden="true" className="size-5" />
-            </span>
-            <div>
-              <h2 className="text-xl font-semibold tracking-[-0.02em]">
-                Preferências pessoais
-              </h2>
-              <p className="mt-1 text-sm leading-6 text-muted-foreground">
-                Escolha onde este projeto abre para você. Esta preferência fica
-                somente neste navegador e não muda a visão da equipe.
-              </p>
-            </div>
-          </div>
-          <div className="mt-6 max-w-sm">
-            <Label htmlFor="project-default-view">Visão inicial</Label>
-            <Select value={defaultView} onValueChange={updateDefaultView}>
-              <SelectTrigger id="project-default-view" className="mt-2 w-full">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {defaultProjectViews.map((item) => (
-                  <SelectItem key={item.value} value={item.value}>
-                    {item.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        </section>
-
-        <section className="rounded-2xl border bg-card p-5 sm:p-6">
+        <section className="min-w-0">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
               <h2 className="text-xl font-semibold tracking-[-0.02em]">
-                Estrutura do projeto
+                Configurações da área de trabalho
               </h2>
               <p className="mt-1 text-sm leading-6 text-muted-foreground">
-                Propósito, governança e período compartilhados com toda a
-                equipe.
+                Informações e decisões compartilhadas com a equipe.
               </p>
             </div>
             <Badge
@@ -1615,14 +1831,25 @@ function ProjectSettings({
             disabled={!detail.capabilities.canEdit || pending}
             className="mt-7 space-y-6 disabled:opacity-70"
           >
-            <SettingsField label="Nome" htmlFor="project-settings-name">
-              <Input
-                id="project-settings-name"
-                value={name}
-                onChange={(event) => setName(event.target.value)}
-                maxLength={180}
-              />
-            </SettingsField>
+            <div className="border-b border-border/60 pb-3">
+              <h3 className="font-semibold">Identidade e organização</h3>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Nome, responsáveis e período de trabalho.
+              </p>
+            </div>
+            {!teamMode && (
+              <SettingsField
+                label="Nome da área de trabalho"
+                htmlFor="project-settings-name"
+              >
+                <Input
+                  id="project-settings-name"
+                  value={name}
+                  onChange={(event) => setName(event.target.value)}
+                  maxLength={180}
+                />
+              </SettingsField>
+            )}
 
             <div className="grid gap-5 md:grid-cols-2">
               <SettingsField label="Status" htmlFor="project-settings-status">
@@ -1724,6 +1951,12 @@ function ProjectSettings({
               </SettingsField>
             </div>
 
+            <div className="border-b border-border/60 pb-3 pt-4">
+              <h3 className="font-semibold">Direção e resultado</h3>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Estes textos aparecem na visão geral da área de trabalho.
+              </p>
+            </div>
             <SettingsField label="Resumo" htmlFor="project-settings-summary">
               <Textarea
                 id="project-settings-summary"
@@ -1747,7 +1980,7 @@ function ProjectSettings({
                 />
               </SettingsField>
               <SettingsField
-                label="Métrica de sucesso"
+                label="Critério de sucesso"
                 htmlFor="project-settings-metric"
               >
                 <Textarea
@@ -1760,31 +1993,33 @@ function ProjectSettings({
               </SettingsField>
             </div>
 
-            <div className="border-t pt-6">
-              <h3 className="font-semibold">Equipe do projeto</h3>
-              <p className="mt-1 text-sm text-muted-foreground">
-                As pessoas selecionadas acompanham o contexto completo do
-                projeto.
-              </p>
-              <div className="mt-4 grid gap-2 sm:grid-cols-2">
-                {members.map((member) => (
-                  <label
-                    key={member.id}
-                    className="flex min-h-12 cursor-pointer items-center gap-3 rounded-xl border px-3 transition-colors hover:bg-muted/60"
-                  >
-                    <Checkbox
-                      checked={teamIds.has(member.id)}
-                      onCheckedChange={(checked) =>
-                        toggleMember(member.id, checked === true)
-                      }
-                    />
-                    <span className="text-sm font-medium">
-                      {member.fullName}
-                    </span>
-                  </label>
-                ))}
+            {!teamMode && (
+              <div className="border-t pt-6">
+                <h3 className="font-semibold">Participantes</h3>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  As pessoas selecionadas acompanham o contexto completo do
+                  projeto.
+                </p>
+                <div className="mt-4 grid gap-2 sm:grid-cols-2">
+                  {members.map((member) => (
+                    <label
+                      key={member.id}
+                      className="flex min-h-12 cursor-pointer items-center gap-3 rounded-xl border px-3 transition-colors hover:bg-muted/60"
+                    >
+                      <Checkbox
+                        checked={teamIds.has(member.id)}
+                        onCheckedChange={(checked) =>
+                          toggleMember(member.id, checked === true)
+                        }
+                      />
+                      <span className="text-sm font-medium">
+                        {member.fullName}
+                      </span>
+                    </label>
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
           </fieldset>
 
           {error ? (
@@ -1793,20 +2028,34 @@ function ProjectSettings({
             </p>
           ) : null}
           {detail.capabilities.canEdit ? (
-            <div className="mt-6 flex justify-end border-t pt-5">
-              <Button onClick={saveProject} disabled={pending}>
-                {pending ? 'Salvando…' : 'Salvar alterações'}
-              </Button>
+            <div className="sticky bottom-0 z-10 mt-6 flex items-center justify-between gap-3 border-t bg-background/95 py-4 backdrop-blur">
+              <span className="text-xs text-muted-foreground">
+                {dirty ? 'Alterações não salvas' : 'Tudo salvo'}
+              </span>
+              <div className="flex gap-2">
+                {dirty && (
+                  <Button
+                    variant="ghost"
+                    onClick={discardChanges}
+                    disabled={pending}
+                  >
+                    Descartar
+                  </Button>
+                )}
+                <Button onClick={saveProject} disabled={pending || !dirty}>
+                  {pending ? 'Salvando…' : 'Salvar alterações'}
+                </Button>
+              </div>
             </div>
           ) : null}
         </section>
       </div>
 
-      <aside className="space-y-4 xl:sticky xl:top-6">
-        <section className="rounded-2xl border bg-card p-5">
-          <h2 className="font-semibold">Áreas relacionadas</h2>
+      <aside className="space-y-6 lg:sticky lg:top-6">
+        <section className="border-l border-border/60 pl-5">
+          <h2 className="text-sm font-semibold">Nesta área</h2>
           <p className="mt-1 text-sm leading-6 text-muted-foreground">
-            Continue a organização sem sair do projeto.
+            Continue a organização sem sair da área de trabalho.
           </p>
           <div className="mt-4 grid gap-2">
             <SettingsShortcut
@@ -1816,7 +2065,7 @@ function ProjectSettings({
             />
             <SettingsShortcut
               label="Recursos"
-              detail={`${detail.resources.length} item${detail.resources.length === 1 ? '' : 's'}`}
+              detail={`${detail.resources.length} ${detail.resources.length === 1 ? 'item' : 'itens'}`}
               onClick={() => onNavigate('resources')}
             />
             <SettingsShortcut
@@ -1826,7 +2075,7 @@ function ProjectSettings({
             />
           </div>
         </section>
-        <section className="rounded-2xl border bg-muted/40 p-5">
+        <section className="border-l border-border/60 pl-5">
           <div className="flex gap-3">
             <ShieldCheck
               aria-hidden="true"
@@ -1836,7 +2085,7 @@ function ProjectSettings({
               <h2 className="font-semibold">Permissões</h2>
               <p className="mt-1 text-sm leading-6 text-muted-foreground">
                 {detail.capabilities.canEdit
-                  ? 'Suas alterações afetam todos que trabalham neste projeto e ficam protegidas por controle de versão.'
+                  ? 'Você pode editar os dados compartilhados desta área de trabalho.'
                   : 'Você pode consultar o projeto e personalizar sua visão inicial. A estrutura é gerenciada por responsáveis autorizados.'}
               </p>
             </div>
@@ -1938,6 +2187,9 @@ function ProjectCalendar({
   items: PortfolioTask[];
   today: string;
 }) {
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const returnPath = taskReturnContext(pathname, searchParams.toString());
   const [visibleMonth, setVisibleMonth] = useState(today.slice(0, 7));
   const monthStart = `${visibleMonth}-01`;
   const gridDays = useMemo(
@@ -1986,7 +2238,7 @@ function ProjectCalendar({
       <div className="mb-4 flex flex-wrap items-end justify-between gap-4 border-b pb-4">
         <div>
           <p className="text-xs font-medium text-muted-foreground">
-            Calendário do projeto
+            Calendário
           </p>
           <h2
             className="mt-1 text-xl font-semibold tracking-[-0.02em]"
@@ -2047,7 +2299,7 @@ function ProjectCalendar({
       >
         <table className="w-full min-w-[760px] table-fixed border-collapse">
           <caption className="sr-only">
-            Tarefas do projeto em {formatCalendarMonth(monthStart)}
+            Tarefas em {formatCalendarMonth(monthStart)}
           </caption>
           <thead>
             <tr>
@@ -2102,7 +2354,7 @@ function ProjectCalendar({
                             {dayTasks.map((task) => (
                               <li key={task.id}>
                                 <Link
-                                  href={`/tarefa/${task.id}`}
+                                  href={taskHrefWithReturn(task.id, returnPath)}
                                   className={cn(
                                     'block rounded-md border border-l-2 border-l-primary/55 bg-background px-2 py-1.5 text-xs font-medium leading-4 shadow-xs transition-[border-color,background-color] hover:border-primary/45 hover:bg-interactive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
                                     !isCurrentMonth && 'opacity-65',

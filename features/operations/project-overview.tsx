@@ -3,358 +3,448 @@
 import {
   ArrowRight,
   CalendarDays,
-  CheckCircle2,
+  Check,
   Circle,
-  CircleAlert,
   Diamond,
   FileText,
   Plus,
-  Target,
   UsersRound,
 } from 'lucide-react';
-import Link from 'next/link';
-
+import type { ReactNode } from 'react';
 import { Button } from '@/components/ui/button';
+import { TaskDetailLink } from '@/features/tasks/task-detail-link';
 import { cn } from '@/lib/utils';
-
 import { formatRange } from './portfolio-detail-sheet';
+import type { ProjectView } from './project-view-layout';
 import type { EventDetail } from './types';
+import styles from './project-overview.module.css';
 
 export function ProjectOverview({
   detail,
+  workspaceId,
   onAddTask,
   onAddMilestone,
-  onOpenList,
+  onNavigate,
+  memberCount,
 }: {
   detail: EventDetail;
+  workspaceId: string;
   onAddTask: () => void;
   onAddMilestone: () => void;
-  onOpenList: () => void;
+  onNavigate: (view: ProjectView) => void;
+  memberCount?: number;
 }) {
+  const { event, capabilities } = detail;
   const openTasks = detail.tasks
     .filter((task) => !['done', 'cancelled'].includes(task.statusCategory))
     .sort(compareByDate);
-  const nextMilestone = [...detail.milestones]
-    .filter((milestone) => !milestone.completedAt)
-    .sort((a, b) => compareByDate(a, b) || a.position - b.position)[0];
-  const hasDirection = Boolean(
-    detail.event.objective || detail.event.successMetric,
+  const milestones = [...detail.milestones].sort(
+    (a, b) =>
+      Number(Boolean(a.completedAt)) - Number(Boolean(b.completedAt)) ||
+      compareByDate(a, b) ||
+      a.position - b.position,
   );
-  const hasTasks = detail.event.totalTasks > 0;
+  const completedMilestones = detail.milestones.filter(
+    (item) => item.completedAt,
+  ).length;
+  const progress =
+    event.progress === null ? null : Math.min(100, Math.max(0, event.progress));
 
   return (
-    <div className="mx-auto max-w-[1180px] pb-10">
-      <div className="grid gap-10 xl:grid-cols-[minmax(0,1fr)_300px] xl:gap-14">
-        <main className="min-w-0 space-y-10">
-          <section aria-labelledby="project-direction-title">
-            <SectionTitle
-              eyebrow="Direção"
-              title="O que orienta este projeto"
-              id="project-direction-title"
-            >
-              {detail.capabilities.canEdit ? (
-                <Button asChild variant="ghost" size="sm">
-                  <Link href={`/projetos/${detail.event.id}?visao=settings`}>
-                    Editar direção
-                  </Link>
-                </Button>
-              ) : null}
-            </SectionTitle>
-            {hasDirection ? (
-              <dl className="grid gap-8 py-6 md:grid-cols-2">
-                <DirectionField
-                  label="Objetivo"
-                  value={detail.event.objective}
-                  fallback="Objetivo ainda não definido."
-                />
-                <DirectionField
-                  label="Critério de sucesso"
-                  value={detail.event.successMetric}
-                  fallback="Critério de sucesso ainda não definido."
-                />
-              </dl>
-            ) : (
-              <div className="flex max-w-2xl gap-4 py-9">
-                <span className="mt-0.5 grid size-10 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary">
-                  <Target aria-hidden="true" className="size-5" />
-                </span>
-                <div>
-                  <h3 className="text-lg font-semibold">
-                    Dê direção ao projeto
-                  </h3>
-                  <p className="mt-1 text-[15px] leading-6 text-muted-foreground">
-                    Comece pelo resultado esperado. Tarefas, marcos e datas
-                    podem ser organizados depois, no ritmo deste trabalho.
-                  </p>
-                  {detail.capabilities.canEdit ? (
-                    <Button asChild variant="outline" className="mt-5">
-                      <Link
-                        href={`/projetos/${detail.event.id}?visao=settings`}
-                      >
-                        Definir objetivo
-                      </Link>
-                    </Button>
-                  ) : null}
-                </div>
-              </div>
-            )}
-          </section>
-
-          <section aria-labelledby="project-work-title">
-            <SectionTitle
-              eyebrow="Trabalho"
-              title="Em andamento"
-              id="project-work-title"
-            >
-              {openTasks.length ? (
-                <button
-                  type="button"
-                  onClick={onOpenList}
-                  className="inline-flex min-h-10 items-center gap-1.5 rounded-lg px-2 text-sm font-semibold text-primary hover:bg-primary/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                >
-                  Ver todas <ArrowRight aria-hidden="true" className="size-4" />
-                </button>
-              ) : null}
-            </SectionTitle>
-            {detail.event.overdueTasks > 0 ? (
-              <div className="mt-5 flex items-center gap-3 rounded-xl bg-destructive/8 px-4 py-3 text-sm text-destructive">
-                <CircleAlert aria-hidden="true" className="size-4" />
-                {detail.event.overdueTasks}{' '}
-                {detail.event.overdueTasks === 1
-                  ? 'tarefa precisa'
-                  : 'tarefas precisam'}{' '}
-                de atenção.
-              </div>
-            ) : null}
+    <div className={styles.overview}>
+      <section
+        aria-labelledby="project-overview-title"
+        className={styles.intro}
+      >
+        <div className="min-w-0">
+          <p className={styles.eyebrow}>O trabalho em uma página</p>
+          <h2 id="project-overview-title" className={styles.title}>
+            Visão geral
+          </h2>
+          <p className="mt-2 max-w-2xl whitespace-pre-wrap text-sm leading-6 text-muted-foreground break-words">
+            {event.summary ||
+              'Objetivo, entregas e próximos passos. Tudo o que importa para acompanhar esta área.'}
+          </p>
+        </div>
+        {capabilities.canCreateTask && (
+          <Button onClick={onAddTask} variant="outline" size="sm">
+            <Plus aria-hidden="true" />
+            Adicionar tarefa
+          </Button>
+        )}
+      </section>
+      <div className={styles.metadata}>
+        <button
+          onClick={() => onNavigate('settings')}
+          className={styles.metaItem}
+        >
+          <span className={styles.avatar}>{initials(event.ownerName)}</span>
+          <span>
+            <span className={styles.metaLabel}>Responsável</span>
+            <span className="block text-sm font-medium">
+              {event.ownerName || 'Não definido'}
+            </span>
+          </span>
+        </button>
+        <button
+          onClick={() => onNavigate('settings')}
+          className={styles.metaItem}
+        >
+          <CalendarDays
+            aria-hidden="true"
+            className="size-4 text-muted-foreground"
+          />
+          <span>
+            <span className={styles.metaLabel}>Período</span>
+            <span className="block text-sm font-medium">
+              {formatRange(event.startDate, event.endDate)}
+            </span>
+          </span>
+        </button>
+        <button onClick={() => onNavigate('team')} className={styles.metaItem}>
+          <UsersRound
+            aria-hidden="true"
+            className="size-4 text-muted-foreground"
+          />
+          <span>
+            <span className={styles.metaLabel}>Equipe</span>
+            <span className="block text-sm font-medium">
+              {memberCount ?? detail.team.length}{' '}
+              {(memberCount ?? detail.team.length) === 1 ? 'pessoa' : 'pessoas'}
+            </span>
+          </span>
+        </button>
+      </div>
+      <section
+        className={styles.pulse}
+        aria-labelledby="project-progress-title"
+      >
+        <div className={styles.progressMain}>
+          <div className="flex items-baseline justify-between gap-4">
+            <h3 id="project-progress-title" className="text-sm font-medium">
+              Entregas concluídas
+            </h3>
+            <span className={styles.percentage}>
+              {progress === null ? '—' : `${progress}%`}
+            </span>
+          </div>
+          <div
+            className={styles.progressTrack}
+            role="progressbar"
+            aria-label="Tarefas concluídas da equipe"
+            aria-valuemin={0}
+            aria-valuemax={100}
+            aria-valuenow={progress ?? undefined}
+            aria-valuetext={
+              progress === null
+                ? 'Sem tarefas para calcular'
+                : `${event.doneTasks} de ${event.totalTasks} tarefas concluídas`
+            }
+          >
+            <div style={{ width: `${progress ?? 0}%` }} />
+          </div>
+          <p className="mt-2 text-xs text-muted-foreground">
+            {event.totalTasks
+              ? `${event.doneTasks} de ${event.totalTasks} tarefas concluídas`
+              : 'Adicione a primeira tarefa para começar.'}
+          </p>
+        </div>
+        <button className={styles.stat} onClick={() => onNavigate('list')}>
+          <span className={styles.statNumber}>{event.openTasks}</span>
+          <span className="text-sm text-muted-foreground">
+            Em aberto{' '}
+            <ArrowRight aria-hidden="true" className="inline size-3.5" />
+          </span>
+        </button>
+        <button
+          className={cn(
+            styles.stat,
+            event.overdueTasks > 0 && styles.attention,
+          )}
+          onClick={() => onNavigate('list')}
+        >
+          <span className={styles.statNumber}>{event.overdueTasks}</span>
+          <span className="text-sm">
+            {event.overdueTasks === 1 ? 'Tarefa atrasada' : 'Tarefas atrasadas'}{' '}
+            <ArrowRight aria-hidden="true" className="inline size-3.5" />
+          </span>
+        </button>
+      </section>
+      <div className={styles.columns}>
+        <div className="min-w-0">
+          <section aria-labelledby="project-deliveries-title">
+            <SectionHeader
+              id="project-deliveries-title"
+              title="Próximas entregas"
+              count={openTasks.length}
+              action={
+                <TextAction onClick={() => onNavigate('list')}>
+                  Ver tarefas
+                </TextAction>
+              }
+            />
             {openTasks.length ? (
-              <div className="divide-y">
+              <div className="divide-y divide-border/50">
                 {openTasks.slice(0, 5).map((task) => (
-                  <Link
+                  <TaskDetailLink
                     key={task.id}
-                    href={`/tarefa/${task.id}`}
-                    className="group grid min-h-[72px] grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 py-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    workspaceId={workspaceId}
+                    taskId={task.id}
+                    className={styles.task}
                   >
                     <Circle
                       aria-hidden="true"
-                      className="size-5 text-muted-foreground"
+                      className="size-4 shrink-0 text-muted-foreground"
                     />
-                    <div className="min-w-0">
-                      <p className="truncate text-[15px] font-semibold group-hover:text-primary">
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-sm font-medium">
                         {task.title}
-                      </p>
-                      <p className="mt-1 truncate text-sm text-muted-foreground">
+                      </span>
+                      <span className="mt-1 block text-xs text-muted-foreground">
                         {task.statusName} ·{' '}
-                        {task.assigneeName ?? 'Sem responsável'}
-                      </p>
-                    </div>
-                    <span className="text-sm font-medium text-muted-foreground">
-                      {formatDateLabel(task.dueDate)}
+                        {task.assigneeName || 'Sem responsável'}
+                      </span>
                     </span>
-                  </Link>
+                    <span className="shrink-0 text-right text-xs text-muted-foreground">
+                      <span className="block">
+                        {formatDateLabel(task.dueDate)}
+                      </span>
+                      {task.dueTime && (
+                        <span className="mt-1 block">
+                          {task.dueTime.slice(0, 5)}
+                        </span>
+                      )}
+                    </span>
+                    <ArrowRight
+                      aria-hidden="true"
+                      className="size-3.5 shrink-0 text-muted-foreground"
+                    />
+                  </TaskDetailLink>
                 ))}
               </div>
             ) : (
-              <div className="py-9">
-                <p className="text-[15px] font-medium">
-                  Ainda não há trabalho em andamento.
-                </p>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  Crie a primeira tarefa quando o próximo passo estiver claro.
-                </p>
-                {detail.capabilities.canCreateTask ? (
-                  <Button
-                    variant="outline"
-                    onClick={onAddTask}
-                    className="mt-5"
-                  >
-                    <Plus aria-hidden="true" />
-                    Adicionar primeira tarefa
-                  </Button>
-                ) : null}
-              </div>
+              <EmptyState
+                title={
+                  event.totalTasks
+                    ? 'Nenhuma entrega pendente'
+                    : 'Seu trabalho começa aqui'
+                }
+                description={
+                  event.totalTasks
+                    ? 'As tarefas desta área estão concluídas ou canceladas.'
+                    : 'Adicione uma tarefa, defina o responsável e acompanhe a entrega.'
+                }
+                action={
+                  capabilities.canCreateTask ? (
+                    <TextAction onClick={onAddTask}>
+                      Adicionar tarefa
+                    </TextAction>
+                  ) : undefined
+                }
+              />
             )}
           </section>
-
-          <section aria-labelledby="project-milestones-title">
-            <SectionTitle
-              eyebrow="Cronograma"
-              title="Marcos do projeto"
-              id="project-milestones-title"
-            >
-              <Button asChild variant="ghost" size="sm">
-                <Link href={`/projetos/${detail.event.id}?visao=timeline`}>
-                  Abrir cronograma <ArrowRight aria-hidden="true" />
-                </Link>
-              </Button>
-            </SectionTitle>
-            {detail.milestones.length ? (
-              <div className="divide-y">
-                {[...detail.milestones]
-                  .sort((a, b) => a.position - b.position)
-                  .slice(0, 4)
-                  .map((milestone) => (
-                    <div
-                      key={milestone.id}
-                      className="grid min-h-16 grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 py-3"
-                    >
-                      {milestone.completedAt ? (
-                        <CheckCircle2
-                          aria-hidden="true"
-                          className="size-5 text-emerald-600"
-                        />
-                      ) : (
-                        <Diamond
-                          aria-hidden="true"
-                          className="size-5 text-primary"
-                        />
-                      )}
-                      <p
-                        className={cn(
-                          'truncate text-[15px] font-semibold',
-                          milestone.completedAt &&
-                            'text-muted-foreground line-through',
-                        )}
-                      >
-                        {milestone.title}
-                      </p>
-                      <span className="text-sm text-muted-foreground">
-                        {formatDateLabel(milestone.dueDate)}
-                      </span>
-                    </div>
-                  ))}
-              </div>
-            ) : (
-              <div className="flex flex-wrap items-center justify-between gap-5 py-7">
-                <div>
-                  <p className="text-[15px] font-medium">
-                    Nenhum marco definido
-                  </p>
-                  <p className="mt-1 text-sm text-muted-foreground">
-                    Marcos são checkpoints opcionais criados por você.
-                  </p>
-                </div>
-                {detail.capabilities.canEdit ? (
-                  <Button variant="outline" onClick={onAddMilestone}>
-                    <Plus aria-hidden="true" />
-                    Criar marco
-                  </Button>
-                ) : null}
-              </div>
-            )}
-          </section>
-        </main>
-
-        <aside className="space-y-8 xl:border-l xl:pl-8">
-          <section aria-labelledby="project-details-title">
-            <h2 id="project-details-title" className="text-base font-semibold">
-              Detalhes
-            </h2>
-            <dl className="mt-4 divide-y border-y">
-              <DetailRow
-                icon={UsersRound}
-                label="Responsável"
-                value={detail.event.ownerName ?? 'Não definido'}
+          <section
+            className={styles.brief}
+            aria-labelledby="project-brief-title"
+          >
+            <SectionHeader
+              id="project-brief-title"
+              title="Direção da equipe"
+              action={
+                capabilities.canEdit ? (
+                  <TextAction onClick={() => onNavigate('settings')}>
+                    Editar direção
+                  </TextAction>
+                ) : undefined
+              }
+            />
+            <dl className="grid gap-6 pt-5 md:grid-cols-2 md:gap-10">
+              <BriefField
+                label="01 / Objetivo"
+                value={event.objective}
+                fallback="Qual resultado esta área deve entregar?"
               />
-              <DetailRow
-                icon={CalendarDays}
-                label="Período"
-                value={formatRange(
-                  detail.event.startDate,
-                  detail.event.endDate,
-                )}
-              />
-              <DetailRow
-                icon={UsersRound}
-                label="Equipe"
-                value={`${detail.team.length} ${detail.team.length === 1 ? 'pessoa' : 'pessoas'}`}
-              />
-              <DetailRow
-                icon={FileText}
-                label="Recursos"
-                value={String(detail.resources.length)}
+              <BriefField
+                label="02 / Critério de sucesso"
+                value={event.successMetric}
+                fallback="Como a equipe saberá que chegou lá?"
               />
             </dl>
           </section>
-          <section>
-            <div className="flex items-center justify-between gap-3">
-              <h2 className="text-base font-semibold">Andamento</h2>
-              {hasTasks ? (
-                <span className="text-sm font-semibold tabular-nums">
-                  {detail.event.progress ?? 0}%
-                </span>
-              ) : null}
-            </div>
-            <p className="mt-2 text-sm text-muted-foreground">
-              {hasTasks
-                ? `${detail.event.doneTasks} de ${detail.event.totalTasks} tarefas concluídas`
-                : 'Ainda sem tarefas'}
-            </p>
-            {hasTasks ? (
-              <div className="mt-4 h-1.5 overflow-hidden rounded-full bg-muted">
-                <span
-                  className="block h-full rounded-full bg-primary transition-[width] duration-300 motion-reduce:transition-none"
-                  style={{ width: `${detail.event.progress ?? 0}%` }}
-                />
-              </div>
-            ) : null}
-          </section>
-          <section>
-            <h2 className="text-base font-semibold">Próximo passo</h2>
-            <p className="mt-3 text-[15px] font-medium">
-              {!hasDirection
-                ? 'Definir a direção do projeto'
-                : !hasTasks
-                  ? 'Adicionar a primeira tarefa'
-                  : !nextMilestone
-                    ? 'Definir um marco, se fizer sentido'
-                    : nextMilestone.title}
-            </p>
-            <p className="mt-1 text-sm leading-6 text-muted-foreground">
-              {!hasDirection
-                ? 'Registre o objetivo e como o sucesso será reconhecido.'
-                : !hasTasks
-                  ? 'Transforme a direção em uma primeira ação concreta.'
-                  : !nextMilestone
-                    ? 'O cronograma continua válido sem etapas prontas.'
-                    : formatDateLabel(nextMilestone.dueDate)}
-            </p>
-          </section>
-        </aside>
+        </div>
+        <section aria-labelledby="project-milestones-title" className="min-w-0">
+          <SectionHeader
+            id="project-milestones-title"
+            title="Marcos"
+            count={milestones.length}
+            action={
+              <TextAction onClick={() => onNavigate('timeline')}>
+                Cronograma
+              </TextAction>
+            }
+          />
+          {milestones.length ? (
+            <>
+              <p className="mb-4 mt-3 text-xs text-muted-foreground">
+                {completedMilestones} de {milestones.length} concluídos
+              </p>
+              <ol className={styles.milestones}>
+                {milestones.slice(0, 4).map((milestone, index) => (
+                  <li key={milestone.id}>
+                    <button
+                      className={styles.milestone}
+                      onClick={() => onNavigate('timeline')}
+                    >
+                      <span
+                        className={cn(
+                          styles.milestoneIcon,
+                          milestone.completedAt && styles.completed,
+                        )}
+                      >
+                        {milestone.completedAt ? (
+                          <Check aria-hidden="true" className="size-3.5" />
+                        ) : (
+                          <Diamond aria-hidden="true" className="size-3.5" />
+                        )}
+                      </span>
+                      <span className="min-w-0 flex-1">
+                        <span
+                          className={cn(
+                            'block truncate text-sm font-medium',
+                            milestone.completedAt && 'text-muted-foreground',
+                          )}
+                        >
+                          {milestone.title}
+                        </span>
+                        <span className="mt-1 block text-xs text-muted-foreground">
+                          {formatDateLabel(milestone.dueDate)}
+                          {index === 0 && !milestone.completedAt
+                            ? ' · Próximo pendente'
+                            : milestone.completedAt
+                              ? ' · Concluído'
+                              : ''}
+                        </span>
+                      </span>
+                      <ArrowRight
+                        aria-hidden="true"
+                        className="size-3.5 text-muted-foreground"
+                      />
+                    </button>
+                  </li>
+                ))}
+              </ol>
+              {capabilities.canEdit && (
+                <TextAction onClick={onAddMilestone}>
+                  <Plus aria-hidden="true" className="size-3.5" />
+                  Adicionar marco
+                </TextAction>
+              )}
+            </>
+          ) : (
+            <EmptyState
+              title="Defina os pontos de chegada"
+              description="Marcos ajudam a sinalizar decisões, etapas e entregas importantes."
+              action={
+                capabilities.canEdit ? (
+                  <TextAction onClick={onAddMilestone}>
+                    Adicionar marco
+                  </TextAction>
+                ) : undefined
+              }
+            />
+          )}
+        </section>
+      </div>
+      <div className={styles.footer}>
+        <button
+          onClick={() => onNavigate('resources')}
+          className={styles.footerLink}
+        >
+          <FileText aria-hidden="true" className="size-4" />
+          <span>Recursos da equipe</span>
+          <span className="text-muted-foreground">
+            {detail.resources.length}
+          </span>
+          <ArrowRight aria-hidden="true" className="ml-auto size-4" />
+        </button>
+        <button
+          onClick={() => onNavigate('team')}
+          className={styles.footerLink}
+        >
+          <span className="flex -space-x-1.5" aria-hidden="true">
+            {detail.team.slice(0, 3).map((member) => (
+              <span key={member.id} className={styles.avatar}>
+                {initials(member.name)}
+              </span>
+            ))}
+          </span>
+          <span>Ver equipe</span>
+          <ArrowRight aria-hidden="true" className="ml-auto size-4" />
+        </button>
       </div>
     </div>
   );
 }
-
-function SectionTitle({
-  eyebrow,
-  title,
+function SectionHeader({
   id,
-  children,
+  title,
+  count,
+  action,
 }: {
-  eyebrow: string;
-  title: string;
   id: string;
-  children?: React.ReactNode;
+  title: string;
+  count?: number;
+  action?: ReactNode;
 }) {
   return (
-    <div className="flex flex-wrap items-end justify-between gap-3 border-b pb-4">
-      <div>
-        <p className="text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-          {eyebrow}
-        </p>
-        <h2
-          id={id}
-          className="mt-2 text-[22px] font-semibold tracking-[-0.025em]"
-        >
-          {title}
-        </h2>
-      </div>
-      {children}
+    <div className={styles.sectionHeader}>
+      <h3 id={id} className="font-semibold tracking-tight">
+        {title}
+        {count !== undefined && (
+          <span className="ml-2 text-xs font-normal text-muted-foreground">
+            {count}
+          </span>
+        )}
+      </h3>
+      {action}
     </div>
   );
 }
-
-function DirectionField({
+function TextAction({
+  children,
+  onClick,
+}: {
+  children: ReactNode;
+  onClick: () => void;
+}) {
+  return (
+    <button type="button" onClick={onClick} className={styles.textAction}>
+      {children}
+      <ArrowRight aria-hidden="true" className="size-3.5" />
+    </button>
+  );
+}
+function EmptyState({
+  title,
+  description,
+  action,
+}: {
+  title: string;
+  description: string;
+  action?: ReactNode;
+}) {
+  return (
+    <div className="py-6">
+      <p className="text-sm font-medium">{title}</p>
+      <p className="mb-2 mt-1 max-w-sm text-sm leading-6 text-muted-foreground">
+        {description}
+      </p>
+      {action}
+    </div>
+  );
+}
+function BriefField({
   label,
   value,
   fallback,
@@ -364,13 +454,11 @@ function DirectionField({
   fallback: string;
 }) {
   return (
-    <div>
-      <dt className="text-xs font-semibold uppercase tracking-[0.1em] text-muted-foreground">
-        {label}
-      </dt>
+    <div className="min-w-0">
+      <dt className="text-xs text-muted-foreground">{label}</dt>
       <dd
         className={cn(
-          'mt-3 text-[16px] leading-7',
+          'mt-2 whitespace-pre-wrap text-sm leading-6 break-words',
           !value && 'text-muted-foreground',
         )}
       >
@@ -379,48 +467,29 @@ function DirectionField({
     </div>
   );
 }
-
-function DetailRow({
-  icon: Icon,
-  label,
-  value,
-}: {
-  icon: typeof UsersRound;
-  label: string;
-  value: string;
-}) {
+function initials(name: string | null) {
   return (
-    <div className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-3 py-3">
-      <Icon
-        aria-hidden="true"
-        className="mt-0.5 size-4 text-muted-foreground"
-      />
-      <div className="min-w-0">
-        <dt className="text-xs text-muted-foreground">{label}</dt>
-        <dd className="mt-0.5 truncate text-sm font-medium" title={value}>
-          {value}
-        </dd>
-      </div>
-    </div>
+    name
+      ?.trim()
+      .split(/\s+/)
+      .slice(0, 2)
+      .map((part) => part[0])
+      .join('')
+      .toUpperCase() || '—'
   );
 }
-
 function compareByDate(
-  left: { dueDate: string | null },
-  right: { dueDate: string | null },
+  a: { dueDate: string | null },
+  b: { dueDate: string | null },
 ) {
-  if (!left.dueDate && !right.dueDate) return 0;
-  if (!left.dueDate) return 1;
-  if (!right.dueDate) return -1;
-  return left.dueDate.localeCompare(right.dueDate);
+  return (a.dueDate ?? '9999').localeCompare(b.dueDate ?? '9999');
 }
-
 function formatDateLabel(value: string | null) {
   if (!value) return 'Sem data';
+  const [year, month, day] = value.split('-').map(Number);
   return new Intl.DateTimeFormat('pt-BR', {
-    day: '2-digit',
+    day: 'numeric',
     month: 'short',
     year: 'numeric',
-    timeZone: 'UTC',
-  }).format(new Date(`${value}T12:00:00Z`));
+  }).format(new Date(year, month - 1, day, 12));
 }

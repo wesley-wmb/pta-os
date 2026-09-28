@@ -1,21 +1,28 @@
 'use client';
-import { MoreHorizontal, Trash2, Link2 } from 'lucide-react';
-import { useState } from 'react';
+import { Trash2, Link2 } from 'lucide-react';
+import { useState, type ReactElement } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import { Button } from '@/components/ui/button';
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuTrigger,
+} from '@/components/ui/context-menu';
 import { createClient } from '@/lib/supabase/client';
 import Link from 'next/link';
 import { usePathname, useSearchParams } from 'next/navigation';
 import { taskHrefWithReturn } from './task-return-path';
 import type { TaskOverview } from './types';
-export function TaskCardActions({ task }: { task: TaskOverview }) {
+export function TaskCardActions({
+  task,
+  children,
+  disabled = false,
+}: {
+  task: TaskOverview;
+  children: ReactElement;
+  disabled?: boolean;
+}) {
   const queryClient = useQueryClient();
   const pathname = usePathname();
   const params = useSearchParams();
@@ -49,45 +56,54 @@ export function TaskCardActions({ task }: { task: TaskOverview }) {
     else toast.success('Card restaurado.');
   }
   return (
-    <div
-      className="relative z-10"
-      onPointerDown={(event) => event.stopPropagation()}
-    >
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button
-            variant="ghost"
-            size="icon-sm"
-            disabled={pending}
-            aria-label={`Ações do card ${task.title}`}
-          >
-            <MoreHorizontal />
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end">
-          <DropdownMenuItem asChild>
-            <Link href={taskHrefWithReturn(task.id, returnPath)} scroll={false}>
+    <ContextMenu>
+      <ContextMenuTrigger
+        asChild
+        disabled={disabled || pending}
+        onKeyDown={(event) => {
+          if (
+            event.key === 'ContextMenu' ||
+            (event.shiftKey && event.key === 'F10')
+          ) {
+            event.preventDefault();
+            const rect = event.currentTarget.getBoundingClientRect();
+            event.currentTarget.dispatchEvent(
+              new MouseEvent('contextmenu', {
+                bubbles: true,
+                cancelable: true,
+                clientX: rect.left + 24,
+                clientY: rect.top + 24,
+              }),
+            );
+          }
+        }}
+      >
+        {children}
+      </ContextMenuTrigger>
+      <ContextMenuContent onPointerDown={(event) => event.stopPropagation()}>
+        <ContextMenuItem asChild>
+          <Link href={taskHrefWithReturn(task.id, returnPath)} scroll={false}>
+            <Link2 />
+            Editar tarefa
+          </Link>
+        </ContextMenuItem>
+        {task.event_id ? (
+          <ContextMenuItem asChild>
+            <Link href={`/projetos/${task.event_id}?visao=board`}>
               <Link2 />
-              Editar tarefa
+              Abrir equipe vinculada
             </Link>
-          </DropdownMenuItem>
-          {task.event_id ? (
-            <DropdownMenuItem asChild>
-              <Link href={`/projetos/${task.event_id}?visao=board`}>
-                <Link2 />
-                Abrir projeto vinculado
-              </Link>
-            </DropdownMenuItem>
-          ) : null}
-          <DropdownMenuItem
-            onSelect={() => void archive(true, task.version)}
-            className="text-destructive"
-          >
-            <Trash2 />
-            Excluir card
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
-    </div>
+          </ContextMenuItem>
+        ) : null}
+        <ContextMenuItem
+          disabled={pending || disabled}
+          onSelect={() => void archive(true, task.version)}
+          className="text-destructive"
+        >
+          <Trash2 />
+          Excluir card
+        </ContextMenuItem>
+      </ContextMenuContent>
+    </ContextMenu>
   );
 }

@@ -1,6 +1,7 @@
 import 'server-only';
 
 import { redirect } from 'next/navigation';
+import { cache } from 'react';
 
 import { getWorkspaceContext } from '@/features/workspace/server';
 import { createClient } from '@/lib/supabase/server';
@@ -15,7 +16,7 @@ type StatusRow = {
   position: number;
 };
 
-export async function getTaskPageContext() {
+export const getTaskPageContext = cache(async function getTaskPageContext() {
   const context = await getWorkspaceContext();
   if (!context?.workspace) redirect('/login');
 
@@ -40,4 +41,4 @@ export async function getTaskPageContext() {
       position: status.position,
     })),
   };
-}
+});

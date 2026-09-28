@@ -23,7 +23,6 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { createClient } from '@/lib/supabase/client';
-import { cn } from '@/lib/utils';
 
 import {
   initialsFor,
@@ -322,14 +321,12 @@ export function ProfileForm({ profile }: { profile: ProfileData }) {
         </ProfileSection>
 
         <div className="sticky bottom-0 z-10 -mx-4 flex items-center justify-between gap-4 border-t bg-background/92 px-4 py-4 backdrop-blur-xl sm:static sm:mx-0 sm:border-t-0 sm:bg-transparent sm:px-0 sm:py-0 sm:backdrop-blur-none">
-          <p
-            className={cn(
-              'text-sm text-muted-foreground transition-opacity',
-              form.formState.isDirty ? 'opacity-100' : 'opacity-0',
-            )}
-            aria-live="polite"
-          >
-            Alterações não salvas
+          <p className="text-sm text-muted-foreground" aria-live="polite">
+            {!profile.canEdit
+              ? 'Somente leitura'
+              : form.formState.isDirty
+                ? 'Alterações não salvas'
+                : 'Nenhuma alteração pendente'}
           </p>
           <Button
             type="submit"
@@ -399,17 +396,20 @@ function Field({
 }) {
   const id = `${htmlFor.replace('profile-', '')}-error`;
   return (
-    <div className="space-y-2">
-      <div className="flex items-center justify-between gap-3">
-        <Label htmlFor={htmlFor}>
-          {label}
-          {required ? <span className="sr-only"> (obrigatório)</span> : null}
-        </Label>
-        {hint ? (
-          <span className="text-xs text-muted-foreground">{hint}</span>
-        ) : null}
-      </div>
+    <div className="min-w-0 space-y-2">
+      <Label htmlFor={htmlFor}>
+        {label}
+        {required ? <span className="sr-only"> (obrigatório)</span> : null}
+      </Label>
       {children}
+      {hint ? (
+        <p
+          id={`${htmlFor.replace('profile-', '')}-hint`}
+          className="text-xs leading-5 text-muted-foreground"
+        >
+          {hint}
+        </p>
+      ) : null}
       {error ? (
         <p id={id} className="text-xs text-destructive">
           {error}
@@ -436,5 +436,10 @@ function emptyToNull(value: string) {
 }
 
 function errorId(field: string, error?: string) {
-  return error ? `${field}-error` : undefined;
+  const hint = ['pronouns', 'avatar', 'bio'].includes(field)
+    ? `${field}-hint`
+    : '';
+  return (
+    [hint, error ? `${field}-error` : ''].filter(Boolean).join(' ') || undefined
+  );
 }

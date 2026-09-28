@@ -297,11 +297,13 @@ export function TaskDetail({
     searchParams.get('retorno'),
     '/demandas?visao=semana',
   );
-  const returnLabel = returnHref.startsWith('/projetos/')
-    ? 'Voltar para o projeto'
-    : returnHref === '/inicio'
-      ? 'Voltar para o início'
-      : 'Voltar para minhas tarefas';
+  const returnLabel = returnHref.startsWith('/equipes/')
+    ? 'Voltar para a equipe'
+    : returnHref.startsWith('/projetos/')
+      ? 'Voltar para o projeto'
+      : returnHref === '/inicio'
+        ? 'Voltar para o início'
+        : 'Voltar para minhas tarefas';
   return (
     <article
       className={cn(
@@ -622,7 +624,7 @@ export function TaskDetail({
               <PropertyRow
                 id="task-event-label"
                 icon={CalendarRange}
-                label="Projeto"
+                label="Equipe"
               >
                 {capabilities.can_edit ? (
                   <Select
@@ -648,13 +650,13 @@ export function TaskDetail({
                       className="w-full justify-start border-0 bg-transparent px-2 shadow-none transition-colors hover:bg-pta-blue/[0.06] focus:ring-pta-blue/30"
                       aria-labelledby="task-event-label"
                     >
-                      <SelectValue placeholder="Nenhum projeto" />
+                      <SelectValue placeholder="Nenhuma equipe" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="none">Nenhum projeto</SelectItem>
+                      <SelectItem value="none">Nenhuma equipe</SelectItem>
                       {currentEventUnavailable && task.event_id ? (
                         <SelectItem value={task.event_id} disabled>
-                          {task.event_name ?? 'Projeto indisponível'}
+                          {task.event_name ?? 'Equipe indisponível'}
                         </SelectItem>
                       ) : null}
                       {events.map((event) => (

@@ -30,6 +30,20 @@ describe('newTaskSchema', () => {
     expect(result.success).toBe(false);
   });
 
+  it.each(['2026-02-29', '2026-02-31', '2026-13-01', '2026-00-10'])(
+    'rejects impossible calendar date %s before calling the backend',
+    (dueDate) => {
+      expect(newTaskSchema.safeParse({ ...valid, dueDate }).success).toBe(
+        false,
+      );
+    },
+  );
+
+  it('accepts a real leap day without timezone conversion', () => {
+    const result = newTaskSchema.parse({ ...valid, dueDate: '2028-02-29' });
+    expect(result.dueDate).toBe('2028-02-29');
+  });
+
   it('rejects malformed dates and times', () => {
     expect(
       newTaskSchema.safeParse({ ...valid, dueDate: '24/08/2026' }).success,

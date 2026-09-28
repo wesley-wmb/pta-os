@@ -1,6 +1,6 @@
 const TASKS_FALLBACK_PATH = '/demandas';
-const projectPathPattern =
-  /^\/projetos\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const contextPathPattern =
+  /^\/(?:projetos|equipes)\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /**
  * Keeps task overlays inside the workspace route that opened them without
@@ -16,12 +16,26 @@ export function safeTaskReturnPath(
   if (
     target.pathname === '/demandas' ||
     target.pathname === '/inicio' ||
-    projectPathPattern.test(target.pathname)
+    target.pathname === '/semana' ||
+    target.pathname === '/busca' ||
+    target.pathname === '/historico' ||
+    target.pathname === '/produtos' ||
+    target.pathname === '/projetos' ||
+    target.pathname === '/equipes' ||
+    contextPathPattern.test(target.pathname)
   ) {
     return `${target.pathname}${target.search}`;
   }
 
   return fallback;
+}
+
+/** Nested task navigation keeps the original view rather than the parent modal. */
+export function taskReturnContext(pathname: string, search: string) {
+  if (pathname.startsWith('/tarefa/')) {
+    return safeTaskReturnPath(new URLSearchParams(search).get('retorno'));
+  }
+  return safeTaskReturnPath(`${pathname}${search ? `?${search}` : ''}`);
 }
 
 export function taskHrefWithReturn(taskId: string, returnPath: string) {

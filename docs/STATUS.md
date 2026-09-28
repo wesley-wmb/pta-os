@@ -1,5 +1,24 @@
 # Status
 
+## Fundação de API e automações — 27/09/2026
+
+- Implementada localmente a plataforma de chaves por workspace, escopos,
+  expiração, revogação e hash de uso único.
+- Criada a Edge Function `pta-api` com listagem, detalhe, criação, atualização,
+  atribuição e comentários; mutações continuam passando por RPC e `version`.
+- Adicionado outbox canônico para tarefas, responsáveis e comentários, com
+  deduplicação, supressão do próprio ator, política antispam e entregas separadas
+  para Slack e e-mail. Entregas pendentes do mesmo destinatário/tarefa são
+  consolidadas antes do claim; o Slack atualiza a mensagem anterior na janela.
+- Criado o dispatcher local para Slack Web API e Resend, com busca por e-mail,
+  DM privada, `chat.update`, idempotência do e-mail, retry e limite de tentativas.
+- Configurações recebeu `/configuracoes/api`, gestão de chaves, política de
+  eventos e documentação em português.
+- A migration e as duas Edge Functions ainda precisam ser publicadas e
+  verificadas no Supabase hospedado. O CLI vinculado retornou 403 no dry-run e
+  não há Docker local; por isso nenhum segredo foi gravado nem mensagem real foi
+  enviada. O teste ponta a ponta permanece restrito ao Wesley.
+
 ## Release funcional consolidado — 26/09/2026
 
 - O frontend e o projeto Supabase `cmrufxuwrracarokrcif` (PTA OS) estão
@@ -96,7 +115,7 @@ Atualizado em 26 de setembro de 2026.
 - Equipe com gestão de membros, convites, papéis, suspensão, reativação, remoção lógica e transferência de propriedade; Histórico com leitura sanitizada do workspace.
 - Troca segura entre múltiplos workspaces com seleção HTTP only validada no servidor e limpeza integral do cache do cliente.
 - Colaboração em demandas com editor rico seguro, títulos, listas, checks, citações, links HTTPS, comentários paginados, respostas, edição pelo autor e exclusão lógica.
-- Mídia e arquivos entram somente como links externos compartilháveis. A interface não possui upload de arquivo e não chama Supabase Storage.
+- Links e arquivos das tarefas aceitam mídia privada (até 25 MB), descrição opcional, edição e remoção. Backend publicado pela migration 20260927234152_task_media_descriptions.
 - Central de Recursos real para URLs HTTPS, com categorias, favoritos particulares, recentes, paginação, detalhe interno, abertura externa registrada, restrição e permissões explícitas.
 - Criação de categoria diretamente no editor de recurso, com slug validado e posição serializada por workspace.
 - Relações de recurso com demandas, produtos, eventos e tags editáveis por RPC, exibidas no detalhe com deep links.
@@ -126,9 +145,9 @@ Atualizado em 26 de setembro de 2026.
 - A leitura de `activity_logs` foi revogada do cliente. Histórico e detalhe recebem payload sanitizado.
 - As migrations finais foram aplicadas e verificadas no projeto hospedado: `20260822223702_task_collaboration_realtime_hardening`, `20260822223746_resources_permissions_categories` e `20260822223748_search_prefix`.
 - O smoke remoto confirmou grants somente para `authenticated`, política privada de Broadcast, guard de restrição ativo, criação de categoria, criação de recurso e busca por prefixo. Os dados do smoke foram revertidos na mesma transação.
-- As migrations `20260822235316_resource_relations_categories`, `20260822235318_task_attachments_storage` e `20260822235321_events_products_operational` também foram aplicadas no hospedado. A migration de anexos representa um fluxo legado que não deve receber novos arquivos.
+- As migrations `20260822235316_resource_relations_categories`, `20260822235318_task_attachments_storage` e `20260822235321_events_products_operational` também foram aplicadas no hospedado. O fluxo de anexos foi reativado com descrições e mídias pela migration `20260927234152_task_media_descriptions`.
 - A verificação estrutural histórica confirmou o bucket e suas políticas antes da nova decisão de produto. Os objetos e registros existentes serão preservados até inventário e migração explícita.
-- O smoke operacional histórico cobriu o fluxo antigo de anexo. A interface atual usa somente links HTTPS externos.
+- O teste interativo de anexos cobriu envio de TXT e PNG, miniatura, descrição, edição e persistência; a remoção foi verificada pelo ciclo RPC/Storage durante a limpeza das fixtures.
 - A migration `20260823003447_workspace_team_activation` foi aplicada e verificada no hospedado.
 - A verificação de Equipe confirmou cinco novas colunas de convite, quatro novas colunas de membership, RLS forçada, dois gatilhos diferidos de owner, dez RPCs executáveis somente por `authenticated` e ausência de escrita direta pelo cliente.
 - O smoke transacional de Equipe cobriu criação, inspeção, aceite idempotente, troca de papel, suspensão, reativação, remoção lógica, novo convite de reativação, cancelamento e transferência de propriedade nos dois sentidos. Todos os dados foram revertidos.
@@ -193,9 +212,11 @@ Atualizado em 26 de setembro de 2026.
 - Avaliar filtros dedicados por produto, evento e tag. A busca textual já encontra esses relacionamentos.
 - Evoluir a ordenação manual de seções e itens de checklist; edição, exclusão e
   desvinculação já estão disponíveis.
-- Inventariar anexos legados, definir destino externo e migrar as referências antes de qualquer remoção definitiva do bucket ou da metadata histórica.
+- Monitorar uploads incompletos e quotas do bucket privado de anexos.
 - Levar o editor rico seguro para descrições longas de Produtos, Eventos e Recursos depois de estabilizar a experiência em Demandas.
-- Manter credenciais e acessos secretos fora deste módulo até existir decisão explícita sobre Vault e MFA.
+- Exigir MFA/AAL2 nas operações de rotação e desconexão de credenciais antes de
+  liberar a gestão para mais administradores. Os segredos já são modelados no
+  Vault e nunca são devolvidos ao navegador.
 - Publicar o aplicativo e configurar URLs de autenticação do ambiente definitivo.
 - Rotacionar ou revogar credenciais privilegiadas que tenham sido compartilhadas fora do cofre de segredos.
 
@@ -215,3 +236,37 @@ Atualizado em 26 de setembro de 2026.
 - A etiqueta de projeto representa `tasks.event_id`. Selecionar Projeto inclui a mesma tarefa no Kanban correspondente; criar dentro do projeto preenche esse vínculo. Trocar o projeto invalida o cache de portfólio e as assinaturas de tarefas usam workspace para atualizar também o projeto anterior.
 - A conexão Quadro–Semana é uma regra adicional bidirecional para os próximos movimentos. Não cria tarefas nem é necessária para vincular um projeto. Uma faixa já conectada não pode ser tomada silenciosamente por outra coluna.
 - Validação interativa concluída no navegador autenticado.
+
+### Colunas e conexões diretas — 26/09/2026
+
+- Quadro por status e Kanban interno dos projetos: Adicionar coluna no final; Excluir coluna exige destino e transfere as tarefas por RPC versionada. Colunas são compartilhadas no workspace. A exclusão desativa o status e remove sua conexão, preservando cards e projetos.
+- Semana: Automações abre o editor de conexão no próprio contexto, com nomes reais, resumo bidirecional e remoção da conexão. Substituir a conexão usa uma única transação.
+- Cards de Quadro, projetos e Semana têm menu Ações com edição e exclusão recuperável. Adicionar tarefa fica no rodapé da coluna fora da área de rolagem dos cards.
+- Restaurada a sincronização baseada nas configurações: a função remota havia voltado à regra legada por nomes e não respeitava conexões personalizadas. O cliente remoto também deixa de inferir vínculos pelo nome da coluna.
+- Smoke remoto com rollback: criação, conflito de versão, conexão nos dois sentidos, transferência na exclusão, preservação de quantidade de tarefas, arquivamento/restauração e rejeição de usuário externo.
+
+### Desempenho — 26/09/2026
+
+- Pesquisa em três frentes e diagnóstico com estatísticas SQL reais registrados em `docs/PERFORMANCE.md`, incluindo metas, fontes oficiais, decisões e limites da medição.
+- Links de navegação com feedback pendente, loading boundaries nas rotas centrais e prefetch seletivo de detalhes por intenção; abas de projeto trocam localmente via History API.
+- Contexto de workspace usa joins autorizados para reduzir etapas de rede; Início carrega fontes independentes em paralelo. Sidebar consulta contagens, sem baixar todos os cards.
+- Realtime de tarefas compartilhado por workspace/cache com atualização agrupada; suporte a cancelamento nas leituras e animações mais curtas com reduced motion.
+- Paginação contextual, métricas de navegador em produção e otimizações adicionais de mutação/payload continuam descritas como próximas etapas, não como ganhos já medidos.
+
+### Correção do carregamento de workspace — 26/09/2026
+
+- Removido filtro cliente sobre `workspace_members.removed_at`, coluna interna sem SELECT para authenticated. O filtro introduzido durante a otimização causava erro 42501 no carregamento do shell.
+- Mantidos os filtros autorizados por usuário/workspace/status e a RLS existente; nenhuma permissão foi ampliada.
+- Consultas de memberships e perfis com joins verificadas no banco sob `SET LOCAL ROLE authenticated`; teste de regressão impede reintroduzir o filtro privado.
+
+### Exclusão de colunas da Semana — 26/09/2026
+
+- Menu da coluna operacional permite excluir com destino obrigatório; a RPC transfere cards de todo o workspace, preservando projeto, datas e arquivo, com versão esperada e autorização owner/admin/manager.
+- Colunas removidas guardam destino de redirecionamento para criações e clientes antigos; a última coluna de planejamento e os dias do calendário permanecem necessários.
+- Tarefas agendadas atrasadas continuam visíveis quando Para planejar é removida. Nomes editados são respeitados e conexões só oferecem colunas ativas com os nomes atuais.
+- Migração aplicada e smoke SQL transacional com rollback validou transferência, versões, redirecionamento encadeado e negação de usuário externo. Validação visual permanece indisponível pela restrição salva de acesso ao navegador.
+
+
+## Operação por equipes — 28/09/2026
+
+Operação por equipes implementada: diretório, abertura direta da área de trabalho, Pessoas, criação atômica e privacidade por participação. O contexto teste foi reaproveitado em Operação com autorização. Migrations novas de 28/09 aplicadas somente em cmrufxuwrracarokrcif e timestamps locais alinhados ao remoto.

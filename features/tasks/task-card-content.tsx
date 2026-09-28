@@ -37,8 +37,9 @@ const statusIcons = {
 const priorityStyles = {
   low: 'border-transparent bg-foreground/[0.045] text-muted-foreground',
   medium: 'border-border/60 bg-foreground/[0.035] text-muted-foreground',
-  high: 'border-pta-warning/25 bg-pta-warning/10 text-pta-warning',
-  urgent: 'border-destructive/25 bg-destructive/10 text-destructive',
+  high: 'border-amber-400/40 bg-amber-100 text-amber-950 dark:bg-amber-400/20 dark:text-amber-200',
+  urgent:
+    'border-red-400/40 bg-red-100 text-red-800 dark:bg-red-400/20 dark:text-red-200',
 };
 
 const priorityIcons = {
@@ -53,6 +54,7 @@ export type TaskCardContentProps = {
   nowIso: string;
   today?: string;
   dragHandle?: ReactNode;
+  simplified?: boolean;
 };
 
 /** Presentational content; the parent owns the detail link and drag behavior. */
@@ -61,6 +63,7 @@ export function TaskCardContent({
   nowIso,
   today,
   dragHandle,
+  simplified = false,
 }: TaskCardContentProps) {
   const preferences = useTaskCardPreferences();
   const { density, visibleFields } = preferences;
@@ -93,16 +96,23 @@ export function TaskCardContent({
   const showContext = visibleFields.context && context.length > 0;
   const showDescription =
     visibleFields.description && Boolean(task.description_preview?.trim());
-  const showStatus = visibleFields.status;
+  const showStatus =
+    visibleFields.status && (!simplified || task.status_category === 'blocked');
   const showChecklist = visibleFields.checklist && hasChecklist;
   const showComments =
     visibleFields.comments &&
     typeof task.comment_count === 'number' &&
     task.comment_count > 0;
-  const showDueDate = visibleFields.dueDate;
-  const showAssignee = visibleFields.assignee;
-  const showSummaryRow = showStatus || showChecklist || showComments;
-  const showFooter = showDueDate || showAssignee;
+  const showDueDate =
+    visibleFields.dueDate && (!simplified || Boolean(task.due_date));
+  const showAssignee =
+    visibleFields.assignee && (!simplified || Boolean(assignee));
+  const showSummaryRow =
+    showStatus || (!simplified && (showChecklist || showComments));
+  const showFooter =
+    showDueDate ||
+    showAssignee ||
+    (simplified && (showChecklist || showComments));
 
   return (
     <div
@@ -163,7 +173,14 @@ export function TaskCardContent({
               {context.map(({ label, kind }) => (
                 <span
                   key={kind}
-                  className="inline-flex min-h-6 max-w-full items-center rounded-full bg-foreground/[0.045] px-2 py-0.5 text-xs font-medium leading-4 text-muted-foreground"
+                  className={cn(
+                    'inline-flex min-h-6 max-w-full items-center rounded-md border px-2 py-0.5 text-xs font-semibold leading-4',
+                    kind === 'Projeto'
+                      ? 'border-blue-400/30 bg-blue-100 text-blue-900 dark:bg-blue-400/20 dark:text-blue-200'
+                      : kind === 'Tipo'
+                        ? 'border-violet-400/30 bg-violet-100 text-violet-900 dark:bg-violet-400/20 dark:text-violet-200'
+                        : 'border-teal-400/30 bg-teal-100 text-teal-900 dark:bg-teal-400/20 dark:text-teal-200',
+                  )}
                 >
                   <span className="sr-only">{kind}: </span>
                   <span className="max-w-32 truncate">{label}</span>
@@ -216,7 +233,7 @@ export function TaskCardContent({
           ) : (
             <span className="min-w-0 flex-1" />
           )}
-          {showChecklist ? (
+          {showChecklist && !simplified ? (
             <span className="inline-flex shrink-0 items-center gap-1 text-[13px] tabular-nums text-muted-foreground">
               <ListChecks aria-hidden="true" className="size-3.5" />
               <span className="sr-only">Checklist: </span>
@@ -224,7 +241,7 @@ export function TaskCardContent({
               <span className="sr-only"> itens concluídos</span>
             </span>
           ) : null}
-          {showComments ? (
+          {showComments && !simplified ? (
             <span className="inline-flex shrink-0 items-center gap-1 text-[13px] tabular-nums text-muted-foreground">
               <MessageSquare aria-hidden="true" className="size-3" />
               {task.comment_count}
@@ -234,7 +251,7 @@ export function TaskCardContent({
         </div>
       ) : null}
 
-      {showChecklist ? (
+      {showChecklist && !simplified ? (
         <div
           className={cn(
             'h-[3px] shrink-0 overflow-hidden rounded-full bg-foreground/[0.08]',
@@ -295,6 +312,28 @@ export function TaskCardContent({
                   </span>
                 ) : null}
               </span>
+            </span>
+          ) : null}
+          {simplified && (showChecklist || showComments) ? (
+            <span className="ml-auto flex items-center gap-2 text-xs text-muted-foreground">
+              {showChecklist ? (
+                <span
+                  className="inline-flex items-center gap-1"
+                  aria-label={`Checklist: ${completed} de ${total} itens concluídos`}
+                >
+                  <ListChecks className="size-3.5" aria-hidden="true" />
+                  {completed}/{total}
+                </span>
+              ) : null}
+              {showComments ? (
+                <span
+                  className="inline-flex items-center gap-1"
+                  aria-label={`${task.comment_count} comentários`}
+                >
+                  <MessageSquare className="size-3.5" aria-hidden="true" />
+                  {task.comment_count}
+                </span>
+              ) : null}
             </span>
           ) : null}
           {showAssignee ? (

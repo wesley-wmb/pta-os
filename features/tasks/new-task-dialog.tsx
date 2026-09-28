@@ -14,7 +14,7 @@ import {
   UserRound,
   X,
 } from 'lucide-react';
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useMemo, useState } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 import { toast } from 'sonner';
@@ -53,6 +53,7 @@ import {
 } from './rich-text';
 import { RichTextEditor } from './rich-text-editor';
 import type { TaskWeekLane } from './types';
+import { taskHrefWithReturn, taskReturnContext } from './task-return-path';
 
 const createdTaskSchema = z.object({
   id: z.uuid(),
@@ -100,6 +101,8 @@ export function NewTaskDialog({
   trigger,
 }: NewTaskDialogProps) {
   const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const [open, setOpen] = useState(false);
   const creationContext = useTaskCreationContext(workspaceId, open);
   const form = useForm<NewTaskInput>({
@@ -242,7 +245,7 @@ export function NewTaskDialog({
         {
           p_task_id: task.id,
           p_week_lane: initialWeekLane,
-          p_due_date: null,
+          p_due_date: values.dueDate || null,
           p_position: task.task_number * 1024,
           p_expected_version: task.version,
         },
@@ -273,7 +276,13 @@ export function NewTaskDialog({
     });
     await onCreated?.();
     if (navigateAfterCreate)
-      router.push(`/tarefa/${task.id}`, { scroll: false });
+      router.push(
+        taskHrefWithReturn(
+          task.id,
+          taskReturnContext(pathname, searchParams.toString()),
+        ),
+        { scroll: false },
+      );
     router.refresh();
   }
 
@@ -509,7 +518,7 @@ export function NewTaskDialog({
                       </SelectContent>
                     </Select>
                   </PropertyRow>
-                  <PropertyRow icon={BriefcaseBusiness} label="Projeto">
+                  <PropertyRow icon={BriefcaseBusiness} label="Equipe">
                     <Select
                       value={eventId}
                       onValueChange={(value) => {
@@ -524,12 +533,12 @@ export function NewTaskDialog({
                     >
                       <SelectTrigger
                         className={styles.inlineControl}
-                        aria-label="Projeto"
+                        aria-label="Equipe"
                       >
-                        <SelectValue placeholder="Sem projeto" />
+                        <SelectValue placeholder="Sem equipe" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="none">Sem projeto</SelectItem>
+                        <SelectItem value="none">Sem equipe</SelectItem>
                         {events.map((event) => (
                           <SelectItem key={event.id} value={event.id}>
                             {event.name}
@@ -589,7 +598,7 @@ export function NewTaskDialog({
                 ) : null}
                 {creationContext.isError ? (
                   <p className={styles.fieldError}>
-                    Não foi possível carregar tipos, produtos e projetos.
+                    Não foi possível carregar tipos, produtos e equipes.
                   </p>
                 ) : null}
               </section>
@@ -620,10 +629,10 @@ export function NewTaskDialog({
                   <dd>{dueDate || 'Sem prazo definido'}</dd>
                 </div>
                 <div>
-                  <dt>Projeto</dt>
+                  <dt>Equipe</dt>
                   <dd>
                     {context?.events.find((item) => item.id === eventId)
-                      ?.name ?? 'Nenhum projeto'}
+                      ?.name ?? 'Nenhuma equipe'}
                   </dd>
                 </div>
               </dl>

@@ -16,7 +16,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { GripVertical } from 'lucide-react';
-import Link from 'next/link';
+import { TaskDetailLink } from './task-detail-link';
 import { useMemo, useState } from 'react';
 import { toast } from 'sonner';
 
@@ -306,15 +306,15 @@ function DraggableTask({
       )}
     >
       <div className="flex items-start gap-2">
-        <Link
-          href={`/tarefa/${task.id}`}
-          scroll={false}
+        <TaskDetailLink
+          taskId={task.id}
+          workspaceId={task.workspace_id}
           className="min-w-0 flex-1 rounded-sm"
         >
           <h3 className="line-clamp-2 text-sm font-medium leading-5">
             {task.title}
           </h3>
-        </Link>
+        </TaskDetailLink>
         {canEdit ? (
           <button
             type="button"
@@ -347,12 +347,16 @@ function DraggableTask({
 
 function WeekTaskLink({ task }: { task: TaskOverview }) {
   return (
-    <Link href={`/tarefa/${task.id}`} scroll={false} className="block py-4">
+    <TaskDetailLink
+      taskId={task.id}
+      workspaceId={task.workspace_id}
+      className="block py-4"
+    >
       <p className="text-sm font-medium">{task.title}</p>
       <p className="mt-1 text-xs text-muted-foreground">
         {task.status_name} · {task.primary_assignee_name ?? 'Sem responsável'}
       </p>
-    </Link>
+    </TaskDetailLink>
   );
 }
 

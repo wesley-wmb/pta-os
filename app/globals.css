@@ -711,19 +711,21 @@
     pointer-events: none;
   }
   .pta-home-reveal {
-    animation: pta-home-reveal 620ms var(--motion-ease-emphasized) both;
+    animation: pta-home-reveal var(--motion-duration-base)
+      var(--motion-ease-emphasized) both;
   }
   .pta-home-reveal-delay-1 {
-    animation-delay: 70ms;
+    animation-delay: 0ms;
   }
   .pta-home-reveal-delay-2 {
-    animation-delay: 140ms;
+    animation-delay: 0ms;
   }
   .pta-home-reveal-delay-3 {
-    animation-delay: 210ms;
+    animation-delay: 0ms;
   }
   .pta-home-progress-ring {
-    animation: pta-home-ring-in 1100ms var(--motion-ease-emphasized) 300ms both;
+    animation: pta-home-ring-in var(--motion-duration-slow)
+      var(--motion-ease-emphasized) both;
     filter: drop-shadow(
       0 0 7px color-mix(in srgb, var(--pta-blue) 44%, transparent)
     );
@@ -848,7 +850,8 @@
   [data-slot='dropdown-menu-item'],
   [data-slot='dropdown-menu-checkbox-item'],
   [data-slot='dropdown-menu-radio-item'],
-  [data-slot='select-item'] {
+  [data-slot='select-item'],
+  [data-slot='context-menu-item'] {
     min-height: 44px;
   }
 

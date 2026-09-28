@@ -3,6 +3,7 @@
 import {
   Bell,
   Building2,
+  Braces,
   Check,
   ChevronRight,
   CircleUserRound,
@@ -105,7 +106,8 @@ const sections: SettingsSection[] = [
     label: 'Administração',
     description: 'Workspace, equipe e regras',
     icon: Building2,
-    keywords: 'workspace equipe membros administração permissões horário',
+    keywords:
+      'workspace equipe membros administração permissões horário api webhook slack email e-mail integrações',
     administrative: true,
   },
 ];
@@ -283,7 +285,11 @@ export function SettingsView({
           ) : null}
         </aside>
 
-        <main className="min-w-0" aria-live="polite">
+        <section
+          className="min-w-0"
+          aria-live="polite"
+          aria-label="Preferências"
+        >
           {displayedSection === 'account' ? (
             <AccountSection user={user} workspaceName={workspace.name} />
           ) : null}
@@ -314,7 +320,7 @@ export function SettingsView({
               workspaceCount={workspaceCount}
             />
           ) : null}
-        </main>
+        </section>
       </div>
     </div>
   );
@@ -470,8 +476,9 @@ function NotificationSection({
       <PreferenceRow
         icon={Bell}
         title="Alertas no aplicativo"
-        description="Mostra atualizações de tarefas, menções e atividades relevantes."
-        checked={settings.browserNotifications}
+        description="A central de notificações permanece ativa. A personalização dos alertas ainda não está disponível."
+        checked={true}
+        disabled
         onCheckedChange={(browserNotifications) =>
           onSettingsChange({ ...settings, browserNotifications })
         }
@@ -479,9 +486,9 @@ function NotificationSection({
       <PreferenceRow
         icon={MonitorCog}
         title="Som de notificação"
-        description="Emite um som apenas quando um alerta novo chegar."
-        checked={settings.notificationSounds}
-        disabled={!settings.browserNotifications}
+        description="Ainda não disponível. O aplicativo não reproduz sons de alerta."
+        checked={false}
+        disabled
         onCheckedChange={(notificationSounds) =>
           onSettingsChange({ ...settings, notificationSounds })
         }
@@ -587,10 +594,17 @@ function WorkspaceSection({
         disabled={!canAdminister}
       />
       <SettingsLink
-        href="/equipe"
+        href="/pessoas"
         icon={UserRoundCog}
         title="Pessoas e permissões"
         description="Membros, convites, papéis e responsabilidades"
+        disabled={!canAdminister}
+      />
+      <SettingsLink
+        href="/configuracoes/api"
+        icon={Braces}
+        title="API e integrações"
+        description="Chaves, webhooks, Slack e notificações por e-mail"
         disabled={!canAdminister}
       />
 

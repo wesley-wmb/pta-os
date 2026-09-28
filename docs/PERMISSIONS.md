@@ -42,21 +42,21 @@ Gates futuros exigirão um aprovador nomeado. Essa regra só será efetiva depoi
 
 ## Colaboração na demanda
 
-| Ação                                                  | Viewer | Member autorizado            | Manager, admin e owner |
-| ----------------------------------------------------- | ------ | ---------------------------- | ---------------------- |
-| Ler descrição, checklist, comentários e links         | sim    | sim                          | sim                    |
-| Editar descrição e estrutura do checklist             | não    | criador ou responsável       | sim                    |
-| Concluir e reabrir item                               | não    | sim                          | sim                    |
-| Criar comentário e link externo                       | não    | sim                          | sim                    |
-| Excluir comentário                                    | não    | próprio                      | moderação              |
-| Editar ou excluir link                                | não    | próprio                      | sim                    |
-| Abrir arquivo ou mídia no serviço externo             | sim    | sim                          | sim                    |
-| Enviar arquivo binário ao Supabase pela interface PTA | não    | não                          | não                    |
-| Preencher campo personalizado                         | não    | criador ou responsável       | sim                    |
-| Criar campo personalizado                             | não    | não                          | sim                    |
-| Criar tarefa vinculada para membro ativo              | não    | se puder editar a tarefa pai | sim                    |
-| Desvincular tarefa filha sem excluí-la                | não    | se puder editar a tarefa pai | sim                    |
-| Renomear ou excluir seção e passo do checklist        | não    | criador ou responsável       | sim                    |
+| Ação                                           | Viewer | Member autorizado            | Manager, admin e owner |
+| ---------------------------------------------- | ------ | ---------------------------- | ---------------------- |
+| Ler descrição, checklist, comentários e links  | sim    | sim                          | sim                    |
+| Editar descrição e estrutura do checklist      | não    | criador ou responsável       | sim                    |
+| Concluir e reabrir item                        | não    | sim                          | sim                    |
+| Criar comentário e link externo                | não    | sim                          | sim                    |
+| Excluir comentário                             | não    | próprio                      | moderação              |
+| Editar ou excluir link                         | não    | próprio                      | sim                    |
+| Abrir arquivo ou mídia no serviço externo      | sim    | sim                          | sim                    |
+| Enviar arquivo à tarefa com acesso             | não    | sim                          | sim                    |
+| Preencher campo personalizado                  | não    | criador ou responsável       | sim                    |
+| Criar campo personalizado                      | não    | não                          | sim                    |
+| Criar tarefa vinculada para membro ativo       | não    | se puder editar a tarefa pai | sim                    |
+| Desvincular tarefa filha sem excluí-la         | não    | se puder editar a tarefa pai | sim                    |
+| Renomear ou excluir seção e passo do checklist | não    | criador ou responsável       | sim                    |
 
 Uma tarefa vinculada é uma tarefa completa. A pessoa que pode editar a tarefa pai pode delegar uma entrega a qualquer membro ativo que não seja viewer; a validação do alvo e do `workspace_id` ocorre no RPC atômico. A tarefa filha aparece nas visões pessoais e de projeto conforme seu responsável e `event_id`, enquanto a tarefa pai mantém o atalho para abrir o detalhe, os comentários, os links e o histórico da filha.
 
@@ -118,9 +118,27 @@ Na página Equipe, owner, admin e manager veem membros ativos; member vê apenas
 - Links de demanda aceitam somente HTTPS absoluto e nunca geram preview no servidor.
 - Escritas de Recursos passam por RPC e repetem a validação de papel, `workspace_id`, versão e URL no banco.
 - A interface oculta controles de mutação sem capacidade correspondente, mas a autorização final continua no banco.
-- Tabelas de participantes, marcos e relações de recurso não aceitam escrita direta do cliente autenticado. A metadata de anexos é legado sem novos uploads.
+- Tabelas de participantes, marcos e relações de recurso não aceitam escrita direta do cliente autenticado. Anexos usam RPCs, RLS e Storage privado; membros editam/removem os próprios, gestores moderam os anexos da tarefa.
 - Funções administrativas de equipe usam lock por workspace, versão esperada e logs sem e-mail, token ou hash.
 
 ## Segredos
 
 Somente `NEXT_PUBLIC_SUPABASE_URL` e `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` são públicas. Chaves privilegiadas compartilhadas fora do sistema devem ser rotacionadas antes de qualquer conexão remota.
+
+## API e integrações
+
+- Somente owner e admin listam, criam ou revogam chaves e alteram a política de
+  automação do workspace.
+- A chave PTA armazena somente hash, é exibida uma vez e deixa de funcionar
+  quando expira, é revogada ou seu criador perde a membership administrativa.
+- A Edge Function usa chave secreta do Supabase apenas no servidor. O navegador
+  nunca recebe `service_role`, secret key, token Slack ou credencial de e-mail.
+- Funções usadas pelo gateway público são executáveis somente por
+  `service_role`; elas validam a chave PTA, derivam `workspace_id` e ator e então
+  reutilizam RPCs versionadas do domínio.
+- Outbox e recibos de entrega não têm grants para `anon` ou `authenticated`.
+
+
+## Operação por equipes — 28/09/2026
+
+Visibilidade de equipes exige team_members ativo, inclusive para owner/admin/manager. RLS, leituras SECURITY DEFINER, gravações, Storage e Realtime aplicam essa restrição. Pessoas continua transversal; funções profissionais não concedem acesso.

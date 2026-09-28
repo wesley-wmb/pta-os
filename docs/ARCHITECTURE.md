@@ -7,6 +7,9 @@ Browser → Next.js App Router → Supabase Data API/Auth
                           ↘ Postgres RPC + RLS
                           ↘ Realtime
 Browser → serviços externos de mídia por URL HTTPS
+Integrações → Supabase Edge Function `pta-api` → RPC + RLS
+Postgres outbox → Edge Function dispatcher → Slack / e-mail / webhooks
+Browser → Supabase Storage privado (anexos de tarefas)
 ```
 
 - Server Components carregam identidade e contexto inicial.
@@ -14,7 +17,7 @@ Browser → serviços externos de mídia por URL HTTPS
 - Formulários usam React Hook Form + Zod.
 - Nenhuma regra de autorização depende apenas de componentes ocultos; o banco decide.
 - O frontend executado localmente aponta para o Supabase hospedado. Supabase CLI e Docker não fazem parte do caminho obrigatório de desenvolvimento.
-- Arquivos, imagens, vídeos e áudios do usuário permanecem fora do Supabase. Demandas e recursos guardam somente links HTTPS compartilháveis.
+- Tarefas guardam links HTTPS e anexos privados no Supabase Storage. A Central de Recursos continua usando referências externas.
 
 ## Rotas
 
@@ -52,13 +55,23 @@ Browser → serviços externos de mídia por URL HTTPS
 - `due_date` e `due_time` são campos separados para preservar semântica de data pura.
 - `due_at` é calculado pelo banco e usado para identificar atraso com precisão de horário.
 - `activity_logs` não possui leitura direta pelo cliente; listas usam uma RPC sanitizada.
+- A API pública usa chaves com escopo por workspace, armazena somente SHA-256
+  e deriva workspace e ator no servidor. Edge Functions nunca confiam em
+  `workspace_id` ou ator enviados no corpo.
+- Automações externas nascem de triggers canônicos de tarefas, responsáveis e
+  comentários na mesma transação da mudança. `activity_logs` continua sendo
+  auditoria e não funciona como fila.
+- `task_automation_events` e `automation_deliveries` formam o outbox durável.
+  Slack e e-mail são transportes e não contêm regras de domínio. Webhooks
+  externos permanecem modelados, porém desativados até a entrega assinada ser
+  validada ponta a ponta.
 - `weekly_capacity_minutes` não possui leitura direta; a página Equipe usa uma RPC com escopo por papel.
 - Gestão de equipe usa RPCs com locks por workspace, versões otimistas e remoção lógica. O banco exige exatamente um proprietário ativo em todo workspace não arquivado.
 - Colaboração em demandas usa RPCs para descrição rica, checklists operacionais, comentários e links externos. O cliente recebe capacidades granulares e não escreve diretamente nas tabelas filhas.
 - Campos personalizados de tarefas são definidos por workspace e persistidos em tabelas tipadas. Definições e valores são escritos somente por RPC; a alteração de valor participa da versão otimista da tarefa.
 - Descrições são documentos JSON com uma lista segura de blocos e marcas. Parágrafos, títulos, listas, checks, citações, links, negrito, itálico, tachado e código inline não aceitam HTML nem nós de mídia.
-- O navegador não oferece input de arquivo nem chama Supabase Storage. Um usuário publica a mídia no Drive ou em outro serviço, configura o acesso naquele serviço e cola o link compartilhável no PTA OS.
-- O bucket e as RPCs antigas de anexos são legado de uma versão anterior. Novos uploads estão desabilitados e os registros existentes permanecem preservados até inventário e migração explícita.
+- Tarefas aceitam links externos e arquivos privados de até 25 MB no Supabase Storage, com descrição opcional. Uploads usam reserva por RPC, caminho canônico por workspace/tarefa e finalização validada no banco.
+- O bucket task-attachments é privado. A leitura usa URLs assinadas curtas; remoção usa lease e finalização. Edição da descrição verifica versão otimista. Recursos continuam aceitando links externos.
 - A Central de Recursos usa RPCs para listagem paginada, detalhe, criação, edição, arquivamento, favoritos, visitas, categorias e permissões.
 - Relações de Recursos com demandas, produtos, eventos e tags são tabelas compostas por workspace. A atualização do vetor de busca ocorre no banco sob locks determinísticos.
 - Projetos usam temporariamente o armazenamento físico e as RPCs versionadas de `events`; essa compatibilidade preserva relações existentes enquanto a interface adota o domínio de projetos. Datas de saúde respeitam o fuso configurado no workspace.
@@ -77,4 +90,14 @@ Browser → serviços externos de mídia por URL HTTPS
 
 ## Decisões adiadas
 
-Migração assistida dos anexos legados, integração direta com provedores externos, credenciais/Vault, automações com pg_cron e analytics avançado ficam atrás de decisões futuras. A execução do modelo operacional de equipes depende da publicação e verificação da fundação local antes de seus controles serem conectados à interface.
+Migração assistida dos anexos legados e analytics avançado continuam atrás de
+decisões futuras. A ADR 0004 aprovou Edge Functions, Vault e outbox para API e
+automações; o dispatcher local usa Slack Web API e Resend, enquanto a publicação
+e a configuração ainda dependem das credenciais do ambiente. A execução do
+modelo operacional de equipes depende da publicação e verificação da fundação
+local antes de seus controles serem conectados à interface.
+
+
+## Operação por equipes — 28/09/2026
+
+Equipes abrem diretamente a área operacional; events continua como contexto interno de compatibilidade, sem cadastro de projeto no fluxo. Ver TEAM_NAVIGATION_PROPOSAL.md.

@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 
 export default function ProfileError({ reset }: { reset: () => void }) {
   return (
-    <main className="grid min-h-[60vh] place-items-center px-5 py-12">
+    <section className="grid min-h-[60vh] place-items-center px-5 py-12">
       <section
         className="max-w-md text-center"
         aria-labelledby="profile-error-title"
@@ -33,6 +33,6 @@ export default function ProfileError({ reset }: { reset: () => void }) {
           Tentar novamente
         </Button>
       </section>
-    </main>
+    </section>
   );
 }

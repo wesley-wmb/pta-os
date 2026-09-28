@@ -1,6 +1,7 @@
 import { z } from 'zod';
 
 import { taskDescriptionSchema } from './rich-text';
+import { isDateKey } from './date-utils';
 
 export const taskPrioritySchema = z.enum(['low', 'medium', 'high', 'urgent']);
 
@@ -10,10 +11,7 @@ export const newTaskSchema = z
     priority: taskPrioritySchema,
     dueDate: z
       .string()
-      .refine(
-        (value) => !value || /^\d{4}-\d{2}-\d{2}$/.test(value),
-        'Data inválida.',
-      ),
+      .refine((value) => !value || isDateKey(value), 'Data inválida.'),
     dueTime: z
       .string()
       .refine(

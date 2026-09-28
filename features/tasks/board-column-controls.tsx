@@ -14,6 +14,7 @@ import {
   Link2,
   MoreHorizontal,
   Pencil,
+  Trash2,
   RotateCcw,
   Sparkles,
   XCircle,
@@ -87,6 +88,7 @@ export type BoardColumnEditableValues = {
 };
 
 export type BoardColumnControlsProps = {
+  onDelete?: () => void;
   columnId: string;
   value: BoardColumnEditableValues;
   disabled?: boolean;
@@ -94,6 +96,10 @@ export type BoardColumnControlsProps = {
   canMoveRight?: boolean;
   automationCount?: number;
   showWeekLink?: boolean;
+  weekLinkOptions?: ReadonlyArray<{
+    value: BoardColumnWeekLink;
+    label: string;
+  }>;
   onUpdate: (
     columnId: string,
     value: BoardColumnEditableValues,
@@ -161,9 +167,11 @@ export function BoardColumnControls({
   canMoveRight = true,
   automationCount = 0,
   showWeekLink = true,
+  weekLinkOptions = WEEK_LINK_OPTIONS,
   onUpdate,
   onOpenAutomations,
   onMove,
+  onDelete,
 }: BoardColumnControlsProps) {
   const [editOpen, setEditOpen] = useState(false);
   const [draft, setDraft] = useState(value);
@@ -264,6 +272,18 @@ export function BoardColumnControls({
             <ArrowRight aria-hidden="true" />
             Mover para a direita
           </DropdownMenuItem>
+          {onDelete ? (
+            <>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                className="text-destructive"
+                onSelect={onDelete}
+              >
+                <Trash2 />
+                Excluir coluna
+              </DropdownMenuItem>
+            </>
+          ) : null}
         </DropdownMenuContent>
       </DropdownMenu>
 
@@ -413,7 +433,7 @@ export function BoardColumnControls({
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {WEEK_LINK_OPTIONS.map((option) => (
+                    {weekLinkOptions.map((option) => (
                       <SelectItem key={option.value} value={option.value}>
                         {option.label}
                       </SelectItem>
@@ -423,7 +443,7 @@ export function BoardColumnControls({
                 <p className="text-xs leading-5 text-muted-foreground">
                   {draft.weekLink === 'none'
                     ? 'Sem regra automática. Mover um card aqui não altera a faixa da Semana.'
-                    : `Quando um card entrar em “${draft.name || value.name}”, ele também irá para “${WEEK_LINK_OPTIONS.find((option) => option.value === draft.weekLink)?.label}” na Semana. O caminho inverso também funciona. É a mesma tarefa, sem cópias. A regra vale para os próximos movimentos.`}
+                    : `Quando um card entrar em “${draft.name || value.name}”, ele também irá para “${weekLinkOptions.find((option) => option.value === draft.weekLink)?.label}” na Semana. O caminho inverso também funciona. É a mesma tarefa, sem cópias. A regra vale para os próximos movimentos.`}
                 </p>
               </div>
             ) : null}

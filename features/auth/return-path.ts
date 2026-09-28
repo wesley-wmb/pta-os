@@ -7,6 +7,8 @@ const workspaceRoutes = new Set([
   '/produtos',
   '/recursos',
   '/equipe',
+  '/equipes',
+  '/pessoas',
   '/historico',
 ]);
 const passwordRecoveryRoutes = new Set(['/nova-senha']);
@@ -17,7 +19,7 @@ export function safeWorkspaceReturnPath(value: string | null) {
   if (!target) return '/inicio';
   if (
     workspaceRoutes.has(target.pathname) ||
-    /^\/tarefa\/[0-9a-f-]+$/i.test(target.pathname) ||
+    /^\/(?:tarefa|equipes|projetos)\/[0-9a-f-]+$/i.test(target.pathname) ||
     invitationRoutePattern.test(target.pathname)
   ) {
     return `${target.pathname}${target.search}`;

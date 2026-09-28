@@ -26,7 +26,7 @@ A visão inicial escolhida por cada pessoa para um projeto é uma preferência l
 - `task_custom_field_definitions`, `task_custom_field_options` e `task_custom_field_values`: propriedades reutilizáveis por workspace e valores tipados por tarefa.
 - `task_comments`: conversa em texto com exclusão lógica e corpo removido no tombstone.
 - `task_links`: referências HTTPS da demanda, incluindo arquivos e mídia hospedados externamente, com autoria protegida.
-- `task_attachments`: tabela legada, mantida somente para preservar registros históricos. Novas reservas, conclusões e inserções foram desabilitadas.
+- `task_attachments`: metadados de anexos privados da tarefa, com reserva, finalização, descrição versionada e remoção por lease. Objetos são isolados por workspace/tarefa no Supabase Storage.
 - `v_task_overview`: leitura operacional das demandas, incluindo nomes de status, responsável, tipo, produto e evento.
 - `create_global_task`: criação atômica de demanda com contexto opcional, descrição, responsável, prazo e motivo de bloqueio.
 
@@ -59,7 +59,7 @@ A fundação local usa FKs compostas com `workspace_id`, RLS forçada e RPCs ver
 - `tags`: catálogo disponível para classificação de recursos.
 - `resource_tasks`, `resource_products`, `resource_events` e `resource_tags`: relações compostas que preservam o isolamento do workspace.
 
-O PTA OS não armazena binários do usuário. `external_url` aceita somente HTTPS absoluto validado no cliente e no banco. A permissão de acesso ao arquivo continua sob responsabilidade do provedor externo.
+Recursos usam links externos. Anexos de tarefas usam task_attachments e bucket privado task-attachments, com descrição de até 1000 caracteres e version para edição otimista. `external_url` aceita somente HTTPS absoluto validado no cliente e no banco. A permissão de acesso ao arquivo continua sob responsabilidade do provedor externo.
 
 ## Catálogos
 
@@ -68,6 +68,20 @@ O PTA OS não armazena binários do usuário. `external_url` aceita somente HTTP
 - `events`: operação versionada com produto, responsável, datas, objetivo, métrica, saúde e participantes em `event_members`.
 - `event_milestones`: marcos ordenados, versionados e auditados de cada evento.
 - Identificadores relacionados usam FKs compostas com `workspace_id` para impedir vínculos cruzados.
+
+## API e automações
+
+- `workspace_api_keys`: credenciais por workspace com prefixo, hash SHA-256,
+  escopos, expiração, revogação, último uso e versão. O token bruto nunca é
+  persistido.
+- `workspace_automation_settings`: canais, domínio corporativo, allowlist de
+  eventos e janela de agrupamento versionados por workspace.
+- `workspace_webhook_endpoints`: destinos HTTPS e referência futura ao segredo
+  de assinatura no Vault.
+- `task_automation_events`: evento canônico e idempotente produzido junto com a
+  mutação de tarefa, responsável ou comentário.
+- `automation_deliveries`: estado e recibo de cada entrega por canal, sem acesso
+  direto pelo cliente.
 
 ## Regras invariantes
 
@@ -120,3 +134,10 @@ O PTA OS não armazena binários do usuário. `external_url` aceita somente HTTP
 - Workspaces não arquivados mantêm exatamente um owner ativo. Transferências alteram os dois papéis na mesma transação e validam as duas versões.
 - Suspensão e remoção de membership não apagam relações históricas. Uma remoção registra `removed_at` e `removed_by` e mantém o registro suspenso.
 - Convites aceitos ou cancelados são terminais. Um token já consumido não reativa uma membership removida; a reativação por convite exige um novo token.
+
+- Colunas semanais desativadas mantêm redirect_lane_key dentro do workspace; delete_week_board_column transfere tarefas e conexões transacionalmente. O trigger posterior à sincronização redireciona escritas antigas e defaults para um destino ativo. Datas e projeto permanecem na mesma tarefa.
+
+
+## Operação por equipes — 28/09/2026
+
+teams.workspace_event_id possui FK composta para events e unicidade por workspace. events.primary_team_id referencia teams. O vínculo interno é protegido e o nome acompanha teams.name; tarefas de contexto usam a mesma equipe.

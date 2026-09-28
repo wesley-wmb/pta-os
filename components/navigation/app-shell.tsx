@@ -2,7 +2,6 @@
 
 import { useQueryClient } from '@tanstack/react-query';
 import {
-  CalendarRange,
   CircleUserRound,
   ChevronRight,
   House,
@@ -16,12 +15,11 @@ import {
   UsersRound,
   type LucideIcon,
 } from 'lucide-react';
-import Link from 'next/link';
+import { NavigationLink as Link } from '@/components/navigation/navigation-link';
 import { usePathname, useRouter } from 'next/navigation';
 import {
   useCallback,
   useEffect,
-  useMemo,
   useRef,
   useState,
   useSyncExternalStore,
@@ -45,10 +43,8 @@ import {
   SheetTitle,
 } from '@/components/ui/sheet';
 import { GlobalSearch } from '@/features/search/global-search';
-import { calendarWeekKeys } from '@/features/tasks/date-utils';
-import { isClosed } from '@/features/tasks/formatters';
 import { NewTaskDialog } from '@/features/tasks/new-task-dialog';
-import { useTasks } from '@/features/tasks/queries';
+import { useWeeklyTaskSummary } from '@/features/tasks/weekly-task-summary';
 import { NotificationMenu } from '@/features/notifications/notification-menu';
 import type {
   WorkspaceContext,
@@ -78,15 +74,15 @@ const navigationSections: Array<{
   },
   {
     label: 'Operação',
-    items: [{ href: '/projetos', label: 'Projetos', icon: CalendarRange }],
+    items: [{ href: '/equipes', label: 'Equipes', icon: UsersRound }],
   },
   {
     label: 'Gestão',
     items: [
       {
-        href: '/equipe',
-        label: 'Equipe',
-        icon: UsersRound,
+        href: '/pessoas',
+        label: 'Pessoas',
+        icon: CircleUserRound,
         roles: ['owner', 'admin', 'manager', 'member'],
       },
       { href: '/configuracoes', label: 'Configurações', icon: Settings },
@@ -302,6 +298,7 @@ export function AppShell({
         </header>
         <main
           id="conteudo-principal"
+          tabIndex={-1}
           className={cn(
             'pta-canvas pta-scrollbar min-h-0 min-w-0 flex-1 overflow-y-auto pb-24 lg:pb-0',
             isTasksArea && 'flex flex-col',
@@ -630,26 +627,8 @@ function WeeklySidebarProgress({
   currentUserId: string;
   timezone: string;
 }) {
-  const query = useTasks(workspaceId);
-  const summary = useMemo(() => {
-    const weekKeys = calendarWeekKeys(timezone);
-    const tasks = (query.data ?? []).filter(
-      (task) =>
-        task.primary_assignee_id === currentUserId &&
-        Boolean(task.due_date && weekKeys.includes(task.due_date)) &&
-        task.status_category !== 'cancelled',
-    );
-    const completed = tasks.filter((task) =>
-      isClosed(task.status_category),
-    ).length;
-    return {
-      completed,
-      total: tasks.length,
-      percentage: tasks.length
-        ? Math.round((completed / tasks.length) * 100)
-        : 0,
-    };
-  }, [currentUserId, query.data, timezone]);
+  const query = useWeeklyTaskSummary(workspaceId, currentUserId, timezone);
+  const summary = query.data ?? { completed: 0, total: 0, percentage: 0 };
 
   return (
     <section
@@ -659,7 +638,11 @@ function WeeklySidebarProgress({
       <div className="flex items-center justify-between gap-3 text-xs text-sidebar-muted">
         <span>Semana atual</span>
         <strong className="text-sidebar-foreground">
-          {query.isPending ? '...' : `${summary.percentage}%`}
+          {query.isPending
+            ? '...'
+            : query.isError
+              ? '—'
+              : `${summary.percentage}%`}
         </strong>
       </div>
       <div
@@ -678,13 +661,20 @@ function WeeklySidebarProgress({
       <p className="mt-2 text-xs text-sidebar-muted">
         {query.isPending
           ? 'Calculando progresso'
-          : `${summary.completed} de ${summary.total} tarefas concluídas`}
+          : query.isError
+            ? 'Não foi possível atualizar o progresso'
+            : `${summary.completed} de ${summary.total} tarefas concluídas`}
       </p>
     </section>
   );
 }
 
 function isRouteActive(pathname: string, href: string) {
+  if (
+    href === '/equipes' &&
+    (pathname === '/projetos' || pathname.startsWith('/projetos/'))
+  )
+    return true;
   if (href === '/demandas')
     return (
       pathname === '/demandas' ||
@@ -696,6 +686,12 @@ function isRouteActive(pathname: string, href: string) {
 }
 
 function routeTitle(pathname: string) {
+  if (pathname === '/projetos' || pathname.startsWith('/projetos/'))
+    return 'Equipes';
+  if (pathname.startsWith('/historico')) return 'Histórico';
+  if (pathname.startsWith('/recursos')) return 'Recursos';
+  if (pathname.startsWith('/produtos')) return 'Produtos';
+  if (pathname.startsWith('/semana')) return 'Semana';
   if (pathname.startsWith('/tarefa')) return 'Tarefas';
   if (pathname.startsWith('/busca')) return 'Busca global';
   if (pathname.startsWith('/perfil')) return 'Perfil';

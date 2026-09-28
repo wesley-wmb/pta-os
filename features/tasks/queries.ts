@@ -7,6 +7,7 @@ import { z } from 'zod';
 import { createClient } from '@/lib/supabase/client';
 
 import { taskDescriptionSchema } from './rich-text';
+import { coalesceRefresh, retainRealtime } from './shared-realtime';
 import type {
   TaskComment,
   TaskCommentsCursor,
@@ -151,6 +152,7 @@ const taskCommentsPageSchema = z.object({
   next_cursor: taskCommentsCursorSchema.nullable(),
 });
 const taskLinkSchema = z.object({
+  description: z.string().default(''),
   id: z.uuid(),
   url: z.string(),
   label: z.string().nullable(),
@@ -260,16 +262,20 @@ export async function fetchTaskCommentsPage(
   return taskCommentsPageSchema.parse(data) satisfies TaskCommentsPage;
 }
 
-export function useTasks(workspaceId: string) {
-  const queryClient = useQueryClient();
+export function useTasks(workspaceId: string, projectId?: string) {
+  useTaskRealtime(workspaceId);
   const query = useQuery({
-    queryKey: taskKeys.all(workspaceId),
-    queryFn: async () => {
-      const { data, error } = await createClient()
+    queryKey: projectId
+      ? [...taskKeys.all(workspaceId), 'project', projectId]
+      : taskKeys.all(workspaceId),
+    queryFn: async ({ signal }) => {
+      let request = createClient()
         .from('v_task_overview')
         .select('*')
         .eq('workspace_id', workspaceId)
         .order('updated_at', { ascending: false });
+      if (projectId) request = request.eq('event_id', projectId);
+      const { data, error } = await request.abortSignal(signal);
       if (error) throw error;
       return taskOverviewSchema
         .array()
@@ -277,68 +283,88 @@ export function useTasks(workspaceId: string) {
     },
   });
 
-  useEffect(() => {
-    const supabase = createClient();
-    const invalidateTasks = () =>
-      queryClient.invalidateQueries({
-        queryKey: taskKeys.all(workspaceId),
-      });
-    const channel = supabase
-      .channel(`tasks:${workspaceId}:${crypto.randomUUID()}`)
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'tasks',
-          filter: `workspace_id=eq.${workspaceId}`,
-        },
-        invalidateTasks,
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'task_checklist_items',
-          filter: `workspace_id=eq.${workspaceId}`,
-        },
-        invalidateTasks,
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'task_comments',
-          filter: `workspace_id=eq.${workspaceId}`,
-        },
-        invalidateTasks,
-      )
-      .subscribe();
-
-    return () => {
-      void supabase.removeChannel(channel);
-    };
-  }, [queryClient, workspaceId]);
-
   return query;
 }
 
-export function useTaskDetail(workspaceId: string, taskId: string) {
+export function useTaskRealtime(workspaceId: string) {
   const queryClient = useQueryClient();
-  const query = useQuery<TaskDetailPayload>({
+  useEffect(
+    () =>
+      retainRealtime(queryClient, `tasks:${workspaceId}`, () => {
+        const supabase = createClient();
+        const refresh = coalesceRefresh(
+          () =>
+            Promise.all([
+              queryClient.invalidateQueries({
+                queryKey: taskKeys.all(workspaceId),
+              }),
+              queryClient.invalidateQueries({
+                queryKey: ['weekly-task-summary', workspaceId],
+              }),
+            ]),
+          () => {
+            void queryClient.invalidateQueries({
+              queryKey: taskKeys.all(workspaceId),
+              refetchType: 'none',
+            });
+            void queryClient.invalidateQueries({
+              queryKey: ['weekly-task-summary', workspaceId],
+              refetchType: 'none',
+            });
+          },
+        );
+        const channel = supabase.channel(
+          `tasks:${workspaceId}:${crypto.randomUUID()}`,
+        );
+        for (const table of [
+          'tasks',
+          'task_checklist_items',
+          'task_comments',
+          'task_assignees',
+          'task_statuses',
+        ]) {
+          channel.on(
+            'postgres_changes',
+            {
+              event: '*',
+              schema: 'public',
+              table,
+              filter: `workspace_id=eq.${workspaceId}`,
+            },
+            refresh.schedule,
+          );
+        }
+        channel.subscribe();
+        return () => {
+          refresh.dispose();
+          void supabase.removeChannel(channel);
+        };
+      }),
+    [queryClient, workspaceId],
+  );
+}
+
+export function taskDetailQueryOptions(workspaceId: string, taskId: string) {
+  return {
     queryKey: taskKeys.detail(workspaceId, taskId),
-    queryFn: async () => {
-      const { data, error } = await createClient().rpc('get_task_detail', {
-        p_task_id: taskId,
-      });
+    staleTime: 30_000,
+    queryFn: async ({ signal }: { signal: AbortSignal }) => {
+      const { data, error } = await createClient()
+        .rpc('get_task_detail', { p_task_id: taskId })
+        .abortSignal(signal);
       if (error) throw error;
       const payload = taskDetailSchema.parse(data);
       if (payload.task.workspace_id !== workspaceId)
         throw new Error('PTA_TASK_WORKSPACE_MISMATCH');
       return payload satisfies TaskDetailPayload;
     },
+  };
+}
+
+export function useTaskDetail(workspaceId: string, taskId: string) {
+  const queryClient = useQueryClient();
+  const query = useQuery<TaskDetailPayload>({
+    ...taskDetailQueryOptions(workspaceId, taskId),
     structuralSharing: (previous, current) => {
       const previousPayload = previous as TaskDetailPayload | undefined;
       const currentPayload = current as TaskDetailPayload;
@@ -360,120 +386,148 @@ export function useTaskDetail(workspaceId: string, taskId: string) {
     },
   });
 
-  useEffect(() => {
-    const supabase = createClient();
-    const invalidateDetail = () => {
-      void queryClient.invalidateQueries({
-        queryKey: taskKeys.detail(workspaceId, taskId),
-      });
-    };
-    const updateCachedComment = (record: Record<string, unknown>) => {
-      const parsed = taskCommentRealtimeSchema.safeParse(record);
-      if (!parsed.success || parsed.data.task_id !== taskId) return;
-      queryClient.setQueryData<TaskDetailPayload>(
-        taskKeys.detail(workspaceId, taskId),
-        (current) => {
-          if (!current) return current;
-          const commentIndex = current.collaboration.comments.findIndex(
-            (comment) => comment.id === parsed.data.id,
-          );
-          if (commentIndex < 0) return current;
-          const comments = [...current.collaboration.comments];
-          const existing = comments[commentIndex];
-          const isDeleted = parsed.data.deleted_at !== null;
-          comments[commentIndex] = {
-            ...existing,
-            body: parsed.data.body,
-            updated_at: parsed.data.updated_at,
-            edited_at: parsed.data.edited_at,
-            is_deleted: isDeleted,
-            deleted_at: parsed.data.deleted_at,
-            can_edit_comment: isDeleted ? false : existing.can_edit_comment,
-            can_delete_comment: isDeleted ? false : existing.can_delete_comment,
-          };
-          return {
-            ...current,
-            collaboration: {
-              ...current.collaboration,
-              comments,
+  useEffect(
+    () =>
+      retainRealtime(
+        queryClient,
+        `task-detail:${workspaceId}:${taskId}`,
+        () => {
+          const supabase = createClient();
+          const refresh = coalesceRefresh(
+            () =>
+              queryClient.invalidateQueries({
+                queryKey: taskKeys.detail(workspaceId, taskId),
+              }),
+            () => {
+              void queryClient.invalidateQueries({
+                queryKey: taskKeys.detail(workspaceId, taskId),
+                refetchType: 'none',
+              });
             },
+          );
+          const invalidateDetail = refresh.schedule;
+          const updateCachedComment = (record: Record<string, unknown>) => {
+            const parsed = taskCommentRealtimeSchema.safeParse(record);
+            if (!parsed.success || parsed.data.task_id !== taskId) return;
+            queryClient.setQueryData<TaskDetailPayload>(
+              taskKeys.detail(workspaceId, taskId),
+              (current) => {
+                if (!current) return current;
+                const commentIndex = current.collaboration.comments.findIndex(
+                  (comment) => comment.id === parsed.data.id,
+                );
+                if (commentIndex < 0) return current;
+                const comments = [...current.collaboration.comments];
+                const existing = comments[commentIndex];
+                const isDeleted = parsed.data.deleted_at !== null;
+                comments[commentIndex] = {
+                  ...existing,
+                  body: parsed.data.body,
+                  updated_at: parsed.data.updated_at,
+                  edited_at: parsed.data.edited_at,
+                  is_deleted: isDeleted,
+                  deleted_at: parsed.data.deleted_at,
+                  can_edit_comment: isDeleted
+                    ? false
+                    : existing.can_edit_comment,
+                  can_delete_comment: isDeleted
+                    ? false
+                    : existing.can_delete_comment,
+                };
+                return {
+                  ...current,
+                  collaboration: {
+                    ...current.collaboration,
+                    comments,
+                  },
+                };
+              },
+            );
+          };
+          const channel = supabase
+            .channel(`task:${taskId}`, {
+              config: { private: true },
+            })
+            .on('broadcast', { event: 'link_removed' }, invalidateDetail)
+            .on('broadcast', { event: 'attachment_changed' }, () => {
+              void queryClient.invalidateQueries({
+                queryKey: ['task-media', workspaceId, taskId],
+              });
+              invalidateDetail();
+            })
+            .on(
+              'postgres_changes',
+              {
+                event: 'UPDATE',
+                schema: 'public',
+                table: 'tasks',
+                filter: `id=eq.${taskId}`,
+              },
+              invalidateDetail,
+            )
+            .on(
+              'postgres_changes',
+              {
+                event: '*',
+                schema: 'public',
+                table: 'task_comments',
+                filter: `task_id=eq.${taskId}`,
+              },
+              (payload) => {
+                if (payload.eventType === 'UPDATE')
+                  updateCachedComment(payload.new);
+                invalidateDetail();
+              },
+            )
+            .on(
+              'postgres_changes',
+              {
+                event: '*',
+                schema: 'public',
+                table: 'task_checklists',
+                filter: `task_id=eq.${taskId}`,
+              },
+              invalidateDetail,
+            )
+            .on(
+              'postgres_changes',
+              {
+                event: '*',
+                schema: 'public',
+                table: 'task_checklist_items',
+                filter: `task_id=eq.${taskId}`,
+              },
+              invalidateDetail,
+            )
+            .on(
+              'postgres_changes',
+              {
+                event: '*',
+                schema: 'public',
+                table: 'task_links',
+                filter: `task_id=eq.${taskId}`,
+              },
+              invalidateDetail,
+            )
+            .on(
+              'postgres_changes',
+              {
+                event: '*',
+                schema: 'public',
+                table: 'task_subtasks',
+                filter: `parent_task_id=eq.${taskId}`,
+              },
+              invalidateDetail,
+            )
+            .subscribe();
+          return () => {
+            refresh.dispose();
+            void supabase.removeChannel(channel);
           };
         },
-      );
-    };
-    const channel = supabase
-      .channel(`task:${taskId}:${crypto.randomUUID()}`, {
-        config: { private: true },
-      })
-      .on('broadcast', { event: 'link_removed' }, invalidateDetail)
-      .on(
-        'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'tasks',
-          filter: `id=eq.${taskId}`,
-        },
-        invalidateDetail,
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'task_comments',
-          filter: `task_id=eq.${taskId}`,
-        },
-        (payload) => {
-          if (payload.eventType === 'UPDATE') updateCachedComment(payload.new);
-          invalidateDetail();
-        },
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'task_checklists',
-          filter: `task_id=eq.${taskId}`,
-        },
-        invalidateDetail,
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'task_checklist_items',
-          filter: `task_id=eq.${taskId}`,
-        },
-        invalidateDetail,
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'task_links',
-          filter: `task_id=eq.${taskId}`,
-        },
-        invalidateDetail,
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'task_subtasks',
-          filter: `parent_task_id=eq.${taskId}`,
-        },
-        invalidateDetail,
-      )
-      .subscribe();
-    return () => {
-      void supabase.removeChannel(channel);
-    };
-  }, [queryClient, taskId, workspaceId]);
+      ),
+    [queryClient, taskId, workspaceId],
+  );
 
   return query;
 }

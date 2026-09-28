@@ -10,7 +10,7 @@ export default async function ProfilePage() {
   const profile = await getOwnProfile();
 
   return (
-    <main id="conteudo-principal" className="pta-page-transition pb-20">
+    <section className="pta-page-transition pb-20">
       <PageHeader
         eyebrow="Conta pessoal"
         title="Seu perfil"
@@ -20,6 +20,6 @@ export default async function ProfilePage() {
       <div className="mx-auto w-full max-w-[900px] px-4 sm:px-6">
         <ProfileForm profile={profile} />
       </div>
-    </main>
+    </section>
   );
 }

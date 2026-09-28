@@ -151,8 +151,12 @@ export function TaskBoardColumn({
         className="pta-scrollbar min-h-0 overflow-y-auto overscroll-y-contain rounded-lg bg-muted/40 p-2"
       >
         <div className="space-y-1.5">{children}</div>
-        {action}
       </div>
+      {!collapsed && action ? (
+        <div className="shrink-0 rounded-lg bg-muted/40 px-2 pb-2">
+          {action}
+        </div>
+      ) : null}
     </section>
   );
 }

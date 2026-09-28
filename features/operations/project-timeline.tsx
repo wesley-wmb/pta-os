@@ -23,6 +23,7 @@ import {
   X,
 } from 'lucide-react';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import {
   useMemo,
   useRef,
@@ -57,6 +58,7 @@ import type { TaskStatus } from '@/features/tasks/types';
 import { taskHrefWithReturn } from '@/features/tasks/task-return-path';
 import { cn } from '@/lib/utils';
 
+import { TimelinePhaseBar } from './timeline-phase-bar';
 import type { EventMilestone, PortfolioTask, ProjectPhase } from './types';
 import {
   buildTimelineScaleCells,
@@ -402,6 +404,7 @@ export function ProjectTimeline({
   onAddTask,
   onAddPhase,
   onEditPhase,
+  onPhaseChange,
   onAddMilestone,
   onToggleMilestone,
   onEditMilestone,
@@ -422,12 +425,18 @@ export function ProjectTimeline({
   onAddTask?: () => void;
   onAddPhase?: () => void;
   onEditPhase?: (phase: ProjectPhase) => void;
+  onPhaseChange?: (
+    phase: ProjectPhase,
+    startDate: string,
+    endDate: string,
+  ) => Promise<void>;
   onAddMilestone: () => void;
   onToggleMilestone: (milestone: EventMilestone) => void;
   onEditMilestone?: (milestone: EventMilestone) => void;
   onMilestoneChange?: (change: TimelineMilestoneChange) => void | Promise<void>;
   onTaskChange?: (change: TimelineTaskChange) => void | Promise<void>;
 }) {
+  const contextPath = usePathname();
   const [grouping, setGrouping] = useState<TimelineGrouping>('status');
   const [filter, setFilter] = useState<TimelineFilter>('all');
   const [order, setOrder] = useState<TimelineOrder>('none');
@@ -727,7 +736,7 @@ export function ProjectTimeline({
       className="-mx-4 relative flex h-[calc(100dvh-210px)] min-h-[360px] flex-col [--timeline-rail-width:152px] sm:-mx-6 sm:[--timeline-rail-width:240px]"
     >
       <h2 id="project-timeline-heading" className="sr-only">
-        Cronograma do projeto
+        Cronograma da equipe
       </h2>
       <p className="sr-only" aria-live="polite">
         {liveMessage}
@@ -1065,6 +1074,7 @@ export function ProjectTimeline({
                 canManage={canManageStructure}
                 onAddPhase={onAddPhase}
                 onEditPhase={onEditPhase}
+                onPhaseChange={onPhaseChange}
                 onEditMilestone={onEditMilestone}
                 onMilestoneChange={
                   onMilestoneChange
@@ -1180,7 +1190,7 @@ export function ProjectTimeline({
                     projectId
                       ? taskHrefWithReturn(
                           task.id,
-                          `/projetos/${projectId}?visao=timeline`,
+                          `${contextPath ?? `/projetos/${projectId}`}?visao=timeline`,
                         )
                       : `/tarefa/${task.id}`
                   }
@@ -1273,7 +1283,7 @@ export function ProjectTimeline({
                 value={grouping}
                 onChange={(v) => setGrouping(v as TimelineGrouping)}
                 options={[
-                  ['phase', 'Seções do projeto'],
+                  ['phase', 'Seções da equipe'],
                   ['status', 'Seções por status'],
                   ['assignee', 'Responsável'],
                 ]}
@@ -1434,7 +1444,7 @@ export function ProjectTimeline({
                       projectId
                         ? taskHrefWithReturn(
                             editingTask.id,
-                            `/projetos/${projectId}?visao=timeline`,
+                            `${contextPath ?? `/projetos/${projectId}`}?visao=timeline`,
                           )
                         : `/tarefa/${editingTask.id}`
                     }
@@ -1654,6 +1664,7 @@ function TimelinePhases({
   canManage,
   onAddPhase,
   onEditPhase,
+  onPhaseChange,
   onEditMilestone,
   onMilestoneChange,
   pendingMilestoneIds,
@@ -1668,6 +1679,11 @@ function TimelinePhases({
   canManage: boolean;
   onAddPhase?: () => void;
   onEditPhase?: (phase: ProjectPhase) => void;
+  onPhaseChange?: (
+    phase: ProjectPhase,
+    startDate: string,
+    endDate: string,
+  ) => Promise<void>;
   onEditMilestone?: (milestone: EventMilestone) => void;
   onMilestoneChange?: (
     milestone: EventMilestone,
@@ -1686,7 +1702,7 @@ function TimelinePhases({
         style={{ height }}
       >
         <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-          Fases do projeto
+          Fases da equipe
         </p>
         {phases.length ? (
           <p className="mt-1 text-xs text-muted-foreground">
@@ -1774,41 +1790,21 @@ function TimelinePhases({
               </button>
             );
           }
-          const rawLeft =
-            differenceInCalendarDays(dateOnly(startKey), range.start) *
-            dayWidth;
-          const rawRight =
-            (differenceInCalendarDays(dateOnly(endKey), range.start) + 1) *
-            dayWidth;
-          const left = Math.max(2, rawLeft);
-          const right = Math.min(canvasWidth - 2, rawRight);
-          if (right <= 0 || left >= canvasWidth || right <= left) return null;
           return (
-            <button
+            <TimelinePhaseBar
               key={phase.id}
-              type="button"
-              onClick={() => onEditPhase?.(phase)}
-              disabled={!canManage || !onEditPhase}
-              className="group/phase absolute z-[6] flex h-8 items-center gap-2 overflow-hidden rounded-lg border px-3 text-left text-xs font-semibold shadow-sm transition-[background-color,border-color,box-shadow,transform] hover:-translate-y-px hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none motion-reduce:transform-none motion-reduce:transition-none"
-              style={{
-                top: 6 + index * PHASE_ROW_HEIGHT,
-                left,
-                width: Math.max(dayWidth, right - left),
-                borderColor: `${color}cc`,
-                background: `linear-gradient(90deg, ${color}52, ${color}24)`,
-                color,
-                boxShadow: `inset 3px 0 0 ${color}, inset -3px 0 0 ${color}`,
-              }}
-              title={`${phase.name}: ${startKey} a ${endKey}`}
-              aria-label={`Editar fase ${phase.name}, de ${startKey} até ${endKey}.`}
-            >
-              <span
-                className="size-2 shrink-0 rounded-full ring-2 ring-background/70"
-                style={{ backgroundColor: color }}
-                aria-hidden="true"
-              />
-              <span className="truncate">{phase.name}</span>
-            </button>
+              phase={phase}
+              startDate={startKey}
+              endDate={endKey}
+              rangeStart={range.start}
+              dayWidth={dayWidth}
+              canvasWidth={canvasWidth}
+              top={6 + index * PHASE_ROW_HEIGHT}
+              color={color}
+              canManage={canManage}
+              onEdit={onEditPhase}
+              onChange={onPhaseChange}
+            />
           );
         })}
         {milestones.map((milestone) => {
@@ -2232,6 +2228,7 @@ function TimelineTaskBar({
     statusId?: string,
   ) => void;
 }) {
+  const contextPath = usePathname();
   const source = timelineTask(task);
   const dueDate = dateOnly(task.dueDate!);
   const pixelFactor = dayWidth / timelineDayWidth(scale);
@@ -2558,7 +2555,7 @@ function TimelineTaskBar({
           projectId
             ? taskHrefWithReturn(
                 task.id,
-                `/projetos/${projectId}?visao=timeline`,
+                `${contextPath ?? `/projetos/${projectId}`}?visao=timeline`,
               )
             : `/tarefa/${task.id}`
         }
@@ -2661,6 +2658,7 @@ function TimelineQueue({
   onToggleMilestone: (milestone: EventMilestone) => void;
   onEditMilestone?: (milestone: EventMilestone) => void;
 }) {
+  const contextPath = usePathname();
   return (
     <div className="grid shrink-0 gap-px border-b bg-border">
       {[...tasks, ...outsideTasks].map((task) => (
@@ -2670,7 +2668,7 @@ function TimelineQueue({
             projectId
               ? taskHrefWithReturn(
                   task.id,
-                  `/projetos/${projectId}?visao=timeline`,
+                  `${contextPath ?? `/projetos/${projectId}`}?visao=timeline`,
                 )
               : `/tarefa/${task.id}`
           }
