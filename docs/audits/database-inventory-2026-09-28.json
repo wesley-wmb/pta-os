@@ -1,0 +1,501 @@
+{
+  "project_id": "cmrufxuwrracarokrcif",
+  "checked_at": "2026-09-28",
+  "tables": [
+    {
+      "rls": false,
+      "name": "runtime_flags",
+      "schema": "private",
+      "force_rls": false
+    },
+    {
+      "rls": true,
+      "name": "activity_logs",
+      "schema": "public",
+      "force_rls": true
+    },
+    {
+      "rls": true,
+      "name": "event_members",
+      "schema": "public",
+      "force_rls": true
+    },
+    {
+      "rls": true,
+      "name": "event_milestones",
+      "schema": "public",
+      "force_rls": true
+    },
+    {
+      "rls": true,
+      "name": "event_phases",
+      "schema": "public",
+      "force_rls": true
+    },
+    {
+      "rls": true,
+      "name": "events",
+      "schema": "public",
+      "force_rls": true
+    },
+    {
+      "rls": true,
+      "name": "job_functions",
+      "schema": "public",
+      "force_rls": true
+    },
+    {
+      "rls": true,
+      "name": "notifications",
+      "schema": "public",
+      "force_rls": true
+    },
+    {
+      "rls": true,
+      "name": "product_members",
+      "schema": "public",
+      "force_rls": true
+    },
+    {
+      "rls": true,
+      "name": "products",
+      "schema": "public",
+      "force_rls": true
+    },
+    {
+      "rls": true,
+      "name": "profiles",
+      "schema": "public",
+      "force_rls": true
+    },
+    {
+      "rls": true,
+      "name": "project_board_columns",
+      "schema": "public",
+      "force_rls": true
+    },
+    {
+      "rls": true,
+      "name": "project_board_settings",
+      "schema": "public",
+      "force_rls": true
+    },
+    {
+      "rls": true,
+      "name": "resource_categories",
+      "schema": "public",
+      "force_rls": true
+    },
+    {
+      "rls": true,
+      "name": "resource_events",
+      "schema": "public",
+      "force_rls": true
+    },
+    {
+      "rls": true,
+      "name": "resource_favorites",
+      "schema": "public",
+      "force_rls": true
+    },
+    {
+      "rls": true,
+      "name": "resource_permissions",
+      "schema": "public",
+      "force_rls": true
+    },
+    {
+      "rls": true,
+      "name": "resource_products",
+      "schema": "public",
+      "force_rls": true
+    },
+    {
+      "rls": true,
+      "name": "resource_tags",
+      "schema": "public",
+      "force_rls": true
+    },
+    {
+      "rls": true,
+      "name": "resource_tasks",
+      "schema": "public",
+      "force_rls": true
+    },
+    {
+      "rls": true,
+      "name": "resource_visits",
+      "schema": "public",
+      "force_rls": true
+    },
+    {
+      "rls": true,
+      "name": "resources",
+      "schema": "public",
+      "force_rls": true
+    },
+    {
+      "rls": true,
+      "name": "tags",
+      "schema": "public",
+      "force_rls": true
+    },
+    {
+      "rls": true,
+      "name": "task_approval_requests",
+      "schema": "public",
+      "force_rls": true
+    },
+    {
+      "rls": true,
+      "name": "task_assignees",
+      "schema": "public",
+      "force_rls": true
+    },
+    {
+      "rls": true,
+      "name": "task_attachments",
+      "schema": "public",
+      "force_rls": true
+    },
+    {
+      "rls": true,
+      "name": "task_board_settings",
+      "schema": "public",
+      "force_rls": true
+    },
+    {
+      "rls": true,
+      "name": "task_checklist_items",
+      "schema": "public",
+      "force_rls": true
+    },
+    {
+      "rls": true,
+      "name": "task_checklists",
+      "schema": "public",
+      "force_rls": true
+    },
+    {
+      "rls": true,
+      "name": "task_comments",
+      "schema": "public",
+      "force_rls": true
+    },
+    {
+      "rls": true,
+      "name": "task_custom_field_definitions",
+      "schema": "public",
+      "force_rls": true
+    },
+    {
+      "rls": true,
+      "name": "task_custom_field_options",
+      "schema": "public",
+      "force_rls": true
+    },
+    {
+      "rls": true,
+      "name": "task_custom_field_values",
+      "schema": "public",
+      "force_rls": true
+    },
+    {
+      "rls": true,
+      "name": "task_dependencies",
+      "schema": "public",
+      "force_rls": true
+    },
+    {
+      "rls": true,
+      "name": "task_handoffs",
+      "schema": "public",
+      "force_rls": true
+    },
+    {
+      "rls": true,
+      "name": "task_links",
+      "schema": "public",
+      "force_rls": true
+    },
+    {
+      "rls": true,
+      "name": "task_status_week_lane_links",
+      "schema": "public",
+      "force_rls": true
+    },
+    {
+      "rls": true,
+      "name": "task_statuses",
+      "schema": "public",
+      "force_rls": true
+    },
+    {
+      "rls": true,
+      "name": "task_subtasks",
+      "schema": "public",
+      "force_rls": true
+    },
+    {
+      "rls": true,
+      "name": "task_types",
+      "schema": "public",
+      "force_rls": true
+    },
+    {
+      "rls": true,
+      "name": "task_week_lanes",
+      "schema": "public",
+      "force_rls": true
+    },
+    {
+      "rls": true,
+      "name": "tasks",
+      "schema": "public",
+      "force_rls": true
+    },
+    {
+      "rls": true,
+      "name": "team_member_functions",
+      "schema": "public",
+      "force_rls": true
+    },
+    {
+      "rls": true,
+      "name": "team_members",
+      "schema": "public",
+      "force_rls": true
+    },
+    {
+      "rls": true,
+      "name": "teams",
+      "schema": "public",
+      "force_rls": true
+    },
+    {
+      "rls": true,
+      "name": "workspace_counters",
+      "schema": "public",
+      "force_rls": true
+    },
+    {
+      "rls": true,
+      "name": "workspace_invitations",
+      "schema": "public",
+      "force_rls": true
+    },
+    {
+      "rls": true,
+      "name": "workspace_members",
+      "schema": "public",
+      "force_rls": true
+    },
+    {
+      "rls": true,
+      "name": "workspace_preferences",
+      "schema": "public",
+      "force_rls": true
+    },
+    {
+      "rls": true,
+      "name": "workspaces",
+      "schema": "public",
+      "force_rls": true
+    }
+  ],
+  "buckets": [
+    {
+      "id": "task-attachments",
+      "public": false,
+      "file_size_limit": 26214400,
+      "allowed_mime_types": [
+        "application/pdf",
+        "image/png",
+        "image/jpeg",
+        "image/webp",
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        "text/csv",
+        "application/csv",
+        "text/plain",
+        "application/zip",
+        "application/x-zip-compressed",
+        "image/gif",
+        "audio/mpeg",
+        "audio/wav",
+        "audio/x-wav",
+        "video/webm",
+        "video/quicktime",
+        "video/mp4"
+      ]
+    }
+  ],
+  "policies": 77,
+  "triggers": [
+    {
+      "table": "objects",
+      "schema": "storage",
+      "trigger": "update_objects_updated_at"
+    },
+    {
+      "table": "buckets",
+      "schema": "storage",
+      "trigger": "enforce_bucket_name_length_trigger"
+    },
+    {
+      "table": "buckets",
+      "schema": "storage",
+      "trigger": "protect_buckets_delete"
+    },
+    {
+      "table": "objects",
+      "schema": "storage",
+      "trigger": "protect_objects_delete"
+    },
+    {
+      "table": "buckets",
+      "schema": "storage",
+      "trigger": "protect_bucket_control_insert"
+    },
+    {
+      "table": "users",
+      "schema": "auth",
+      "trigger": "auth_user_profile_sync"
+    },
+    {
+      "table": "buckets",
+      "schema": "storage",
+      "trigger": "protect_bucket_control_update"
+    },
+    {
+      "table": "buckets",
+      "schema": "storage",
+      "trigger": "protect_bucket_control_update_role"
+    }
+  ],
+  "functions": 210,
+  "extensions": [
+    {
+      "name": "plpgsql",
+      "version": "1.0"
+    },
+    {
+      "name": "pg_stat_statements",
+      "version": "1.11"
+    },
+    {
+      "name": "uuid-ossp",
+      "version": "1.1"
+    },
+    {
+      "name": "pgcrypto",
+      "version": "1.3"
+    },
+    {
+      "name": "supabase_vault",
+      "version": "0.3.1"
+    },
+    {
+      "name": "unaccent",
+      "version": "1.1"
+    }
+  ],
+  "publications": [
+    {
+      "table": "task_statuses",
+      "schema": "public",
+      "publication": "supabase_realtime"
+    },
+    {
+      "table": "tasks",
+      "schema": "public",
+      "publication": "supabase_realtime"
+    },
+    {
+      "table": "notifications",
+      "schema": "public",
+      "publication": "supabase_realtime"
+    },
+    {
+      "table": "task_checklists",
+      "schema": "public",
+      "publication": "supabase_realtime"
+    },
+    {
+      "table": "task_checklist_items",
+      "schema": "public",
+      "publication": "supabase_realtime"
+    },
+    {
+      "table": "task_comments",
+      "schema": "public",
+      "publication": "supabase_realtime"
+    },
+    {
+      "table": "task_links",
+      "schema": "public",
+      "publication": "supabase_realtime"
+    },
+    {
+      "table": "task_board_settings",
+      "schema": "public",
+      "publication": "supabase_realtime"
+    },
+    {
+      "table": "task_week_lanes",
+      "schema": "public",
+      "publication": "supabase_realtime"
+    },
+    {
+      "table": "task_status_week_lane_links",
+      "schema": "public",
+      "publication": "supabase_realtime"
+    },
+    {
+      "table": "project_board_settings",
+      "schema": "public",
+      "publication": "supabase_realtime"
+    },
+    {
+      "table": "project_board_columns",
+      "schema": "public",
+      "publication": "supabase_realtime"
+    },
+    {
+      "table": "messages_2026_09_25",
+      "schema": "realtime",
+      "publication": "supabase_realtime_messages_publication"
+    },
+    {
+      "table": "messages_2026_09_26",
+      "schema": "realtime",
+      "publication": "supabase_realtime_messages_publication"
+    },
+    {
+      "table": "messages_2026_09_27",
+      "schema": "realtime",
+      "publication": "supabase_realtime_messages_publication"
+    },
+    {
+      "table": "messages_2026_09_28",
+      "schema": "realtime",
+      "publication": "supabase_realtime_messages_publication"
+    },
+    {
+      "table": "messages_2026_09_29",
+      "schema": "realtime",
+      "publication": "supabase_realtime_messages_publication"
+    },
+    {
+      "table": "messages_2026_09_30",
+      "schema": "realtime",
+      "publication": "supabase_realtime_messages_publication"
+    },
+    {
+      "table": "messages_2026_10_01",
+      "schema": "realtime",
+      "publication": "supabase_realtime_messages_publication"
+    }
+  ],
+  "edge_functions": []
+}

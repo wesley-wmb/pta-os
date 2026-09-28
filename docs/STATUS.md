@@ -1,5 +1,18 @@
 # Status
 
+## Inventário e reprodução do banco — 28/09/2026
+
+- Roteiro central: [docs/database/README.md](database/README.md), com preparação
+  000, 47 migrations publicadas numeradas e a fundação de API separada como P01.
+- Catálogo completo, hashes e mapeamento local/remoto em
+  [MIGRATIONS.md](database/MIGRATIONS.md) e `database/migration-manifest.json`.
+- Inventário e definições atuais consultados no PTA OS e registrados em
+  `docs/audits/*2026-09-28.json`, sem exportar dados de usuários.
+- Há 18 timestamps divergentes, quatro entradas sem SQL e uma com placeholder
+  no histórico. A reprodução do zero ainda não foi executada/certificada.
+- Equipes e sua privacidade estão publicadas. Menções anteriores à fundação de
+  equipes como apenas local são históricas; API e automações continuam pendentes.
+
 ## Fundação de API e automações — 27/09/2026
 
 - Implementada localmente a plataforma de chaves por workspace, escopos,
@@ -199,7 +212,7 @@ Atualizado em 26 de setembro de 2026.
 
 ## Lacunas restantes
 
-- Publicar e verificar a fundação local de equipes no Supabase hospedado, gerar os tipos e conectar os controles de gestão à interface.
+- Certificar a reprodução do banco vazio conforme `docs/database/README.md` e reconciliar o histórico legado sem reaplicar migrations no ambiente em uso.
 - Revalidar no projeto hospedado as RPCs de categorias de Recursos e gestão de Equipe, incluindo grants, RLS e cache do PostgREST.
 - Alinhar `package.json`, `.env.example` e `tests/e2e/local-setup.spec.ts` ao desenvolvimento com Supabase hospedado, removendo a dependência operacional de CLI, Docker e banco local.
 - Versionar a matriz E2E autenticada para rotas, temas, dialogs, mutações de Recursos, Histórico e drag and drop.
@@ -265,7 +278,6 @@ Atualizado em 26 de setembro de 2026.
 - Colunas removidas guardam destino de redirecionamento para criações e clientes antigos; a última coluna de planejamento e os dias do calendário permanecem necessários.
 - Tarefas agendadas atrasadas continuam visíveis quando Para planejar é removida. Nomes editados são respeitados e conexões só oferecem colunas ativas com os nomes atuais.
 - Migração aplicada e smoke SQL transacional com rollback validou transferência, versões, redirecionamento encadeado e negação de usuário externo. Validação visual permanece indisponível pela restrição salva de acesso ao navegador.
-
 
 ## Operação por equipes — 28/09/2026
 

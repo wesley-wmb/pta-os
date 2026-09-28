@@ -1,0 +1,335 @@
+{
+  "project_id": "cmrufxuwrracarokrcif",
+  "checked_at": "2026-09-28",
+  "migrations": [
+    {
+      "version": "20260822000100",
+      "name": "p0_core",
+      "statement_count": 149,
+      "sql_bytes": 48811,
+      "normalized_md5": "21343be8d129b7c9a6af3ec42a4e0e37"
+    },
+    {
+      "version": "20260822205006",
+      "name": "history_rpc_hardening",
+      "statement_count": 1,
+      "sql_bytes": 2487,
+      "normalized_md5": "cc613131023ea9590d70632e4d52f65e"
+    },
+    {
+      "version": "20260822205609",
+      "name": "workspace_members_hardening",
+      "statement_count": 1,
+      "sql_bytes": 2732,
+      "normalized_md5": "c4e0c6dd3b4bdb4952426a486ae56d98"
+    },
+    {
+      "version": "20260822205610",
+      "name": "task_due_at_overview",
+      "statement_count": 1,
+      "sql_bytes": 1045,
+      "normalized_md5": "7c113921cd2fab20e1f9403d1b64dd19"
+    },
+    {
+      "version": "20260822212526",
+      "name": "task_collaboration",
+      "statement_count": 1,
+      "sql_bytes": 36824,
+      "normalized_md5": "0955eb0b8aa761582f0a23678f996c84"
+    },
+    {
+      "version": "20260822213713",
+      "name": "task_collaboration_followup",
+      "statement_count": 1,
+      "sql_bytes": 29334,
+      "normalized_md5": "7e8f46a0a47d9fb4abb5497f8477e802"
+    },
+    {
+      "version": "20260822220538",
+      "name": "resources_search",
+      "statement_count": 1,
+      "sql_bytes": 65138,
+      "normalized_md5": "f66aab7b3d0faf30ac3bb9d3ab6cd0f1"
+    },
+    {
+      "version": "20260822220539",
+      "name": "task_collaboration_review_fixes",
+      "statement_count": 1,
+      "sql_bytes": 7144,
+      "normalized_md5": "fb07f0ecefe64f05d1370d7a0248b9cb"
+    },
+    {
+      "version": "20260822223702",
+      "name": "task_collaboration_realtime_hardening",
+      "statement_count": 1,
+      "sql_bytes": 3891,
+      "normalized_md5": "35cd7bfee4dacaf0610f93a270768c07"
+    },
+    {
+      "version": "20260822223746",
+      "name": "resources_permissions_categories",
+      "statement_count": 1,
+      "sql_bytes": 4878,
+      "normalized_md5": "fe0d7a2ee6fa9001750a3cffed74aa84"
+    },
+    {
+      "version": "20260822223748",
+      "name": "search_prefix",
+      "statement_count": 1,
+      "sql_bytes": 11689,
+      "normalized_md5": "2302a458d030c6a80ad5536281cd0034"
+    },
+    {
+      "version": "20260822235316",
+      "name": "resource_relations_categories",
+      "statement_count": 1,
+      "sql_bytes": 45250,
+      "normalized_md5": "712c1ecaf6918f7fa504d396ebcdb997"
+    },
+    {
+      "version": "20260822235318",
+      "name": "task_attachments_storage",
+      "statement_count": 1,
+      "sql_bytes": 34744,
+      "normalized_md5": "e6de4ea4d0b863adeea0b9bd1cd12993"
+    },
+    {
+      "version": "20260822235321",
+      "name": "events_products_operational",
+      "statement_count": 1,
+      "sql_bytes": 53752,
+      "normalized_md5": "ec3eb1f860f9a751dab4f4a964ae5dd5"
+    },
+    {
+      "version": "20260823003447",
+      "name": "workspace_team_activation",
+      "statement_count": 1,
+      "sql_bytes": 46535,
+      "normalized_md5": "73ee7d4b1e05b046c81c62d289ba4585"
+    },
+    {
+      "version": "20260823010000",
+      "name": "global_task_context",
+      "statement_count": null,
+      "sql_bytes": null,
+      "normalized_md5": null
+    },
+    {
+      "version": "20260825090000",
+      "name": "external_media_links_rich_text",
+      "statement_count": null,
+      "sql_bytes": null,
+      "normalized_md5": null
+    },
+    {
+      "version": "20260825103000",
+      "name": "task_overview_card_metrics",
+      "statement_count": null,
+      "sql_bytes": null,
+      "normalized_md5": null
+    },
+    {
+      "version": "20260825110000",
+      "name": "task_overview_description_preview",
+      "statement_count": null,
+      "sql_bytes": null,
+      "normalized_md5": null
+    },
+    {
+      "version": "20260825123000",
+      "name": "week_board_operational_lanes",
+      "statement_count": 1,
+      "sql_bytes": 39,
+      "normalized_md5": "9bf507ec13e22f3b68283c58bcdd79b8"
+    },
+    {
+      "version": "20260926201948",
+      "name": "task_board_ordering",
+      "statement_count": 1,
+      "sql_bytes": 12478,
+      "normalized_md5": "991a23dc2ce306ff844716b5f0c0929d"
+    },
+    {
+      "version": "20260926201953",
+      "name": "project_timeline_planning",
+      "statement_count": 1,
+      "sql_bytes": 24387,
+      "normalized_md5": "4649c25bd0917e8d36dc60d9e9193872"
+    },
+    {
+      "version": "20260926201959",
+      "name": "project_timeline_milestone_management",
+      "statement_count": 1,
+      "sql_bytes": 5422,
+      "normalized_md5": "375547e6ed53cc99b20cc89ced20c436"
+    },
+    {
+      "version": "20260926212351",
+      "name": "configurable_task_boards",
+      "statement_count": 1,
+      "sql_bytes": 49783,
+      "normalized_md5": "563b415b4ff16a65908965ebca1cdd34"
+    },
+    {
+      "version": "20260926212840",
+      "name": "task_card_archive",
+      "statement_count": 1,
+      "sql_bytes": 2069,
+      "normalized_md5": "1899be48854cfe4e5282239482d3e333"
+    },
+    {
+      "version": "20260926213022",
+      "name": "board_connection_conflicts",
+      "statement_count": 1,
+      "sql_bytes": 3780,
+      "normalized_md5": "c3aac85ce43ce780bae8733793b418d1"
+    },
+    {
+      "version": "20260926213913",
+      "name": "team_operating_model_foundation",
+      "statement_count": 1,
+      "sql_bytes": 93093,
+      "normalized_md5": "db4ef7c91e635ed81cb0e0e344c9ae70"
+    },
+    {
+      "version": "20260926213923",
+      "name": "task_context_updates",
+      "statement_count": 1,
+      "sql_bytes": 8633,
+      "normalized_md5": "83532eec20ffa5b2e989a6440f857b0c"
+    },
+    {
+      "version": "20260926213925",
+      "name": "task_custom_fields",
+      "statement_count": 1,
+      "sql_bytes": 16963,
+      "normalized_md5": "489c32fd0571455ee315d72d69c877a7"
+    },
+    {
+      "version": "20260926213927",
+      "name": "task_steps_and_subtasks",
+      "statement_count": 1,
+      "sql_bytes": 19739,
+      "normalized_md5": "2bf3fa767ce35a1a9e3f3460e0d20dad"
+    },
+    {
+      "version": "20260926213930",
+      "name": "profile_identity",
+      "statement_count": 1,
+      "sql_bytes": 4658,
+      "normalized_md5": "19c0bb7dfed327934b7da83d72c86eb7"
+    },
+    {
+      "version": "20260926213933",
+      "name": "workspace_settings",
+      "statement_count": 1,
+      "sql_bytes": 7594,
+      "normalized_md5": "02f6cfd03dab43e332b4bed811e947dd"
+    },
+    {
+      "version": "20260926213939",
+      "name": "task_steps_management",
+      "statement_count": 1,
+      "sql_bytes": 5635,
+      "normalized_md5": "cca87c151981f44ce81b6dc891c0f067"
+    },
+    {
+      "version": "20260926213943",
+      "name": "link_board_week_special_lanes",
+      "statement_count": 1,
+      "sql_bytes": 5197,
+      "normalized_md5": "efb50aea3649182d13eaea8bea00cf94"
+    },
+    {
+      "version": "20260926214344",
+      "name": "security_advisor_hardening",
+      "statement_count": 1,
+      "sql_bytes": 325,
+      "normalized_md5": "9e0ba2ae0cf85ca4039e911321b7abff"
+    },
+    {
+      "version": "20260926221412",
+      "name": "task_board_column_lifecycle",
+      "statement_count": 1,
+      "sql_bytes": 6399,
+      "normalized_md5": "7f86bf9743ab0dd9f21268eb9fb93591"
+    },
+    {
+      "version": "20260926221644",
+      "name": "restore_configured_board_sync",
+      "statement_count": 1,
+      "sql_bytes": 2920,
+      "normalized_md5": "ca09a939db03e36c043781afc91b7158"
+    },
+    {
+      "version": "20260927012520",
+      "name": "week_column_lifecycle",
+      "statement_count": 1,
+      "sql_bytes": 5443,
+      "normalized_md5": "d0054df7683d9aa7a666c0036482b61e"
+    },
+    {
+      "version": "20260927234152",
+      "name": "task_media_descriptions",
+      "statement_count": 1,
+      "sql_bytes": 7860,
+      "normalized_md5": "0ed149e782deba1c0c2ac2cc27e72498"
+    },
+    {
+      "version": "20260927235815",
+      "name": "task_media_description_realtime",
+      "statement_count": 1,
+      "sql_bytes": 1789,
+      "normalized_md5": "101aefd7421b5d0163ab80e492c0aa4b"
+    },
+    {
+      "version": "20260928144358",
+      "name": "team_project_navigation",
+      "statement_count": 1,
+      "sql_bytes": 9115,
+      "normalized_md5": "6532700fd2ecceb0d64e5e9eb5595a2e"
+    },
+    {
+      "version": "20260928145333",
+      "name": "team_workspace_context",
+      "statement_count": 1,
+      "sql_bytes": 8185,
+      "normalized_md5": "a83cc6eaf4deedfc160b9a1900c57b27"
+    },
+    {
+      "version": "20260928145850",
+      "name": "team_context_name_sync",
+      "statement_count": 1,
+      "sql_bytes": 1143,
+      "normalized_md5": "68a3f988cb1909168d452fe06dd1a499"
+    },
+    {
+      "version": "20260928150025",
+      "name": "team_membership_visibility",
+      "statement_count": 1,
+      "sql_bytes": 10184,
+      "normalized_md5": "deef19e559a3e86b98d4fd51d8bcacd2"
+    },
+    {
+      "version": "20260928150110",
+      "name": "team_private_read_rpcs",
+      "statement_count": 1,
+      "sql_bytes": 58706,
+      "normalized_md5": "180aea128c5a2d4c4acd13d9c54d163d"
+    },
+    {
+      "version": "20260928150247",
+      "name": "team_operating_model_visibility",
+      "statement_count": 1,
+      "sql_bytes": 8045,
+      "normalized_md5": "bfe4bcb93cf0045368ddd825d1cfa792"
+    },
+    {
+      "version": "20260928150328",
+      "name": "team_mutation_privacy",
+      "statement_count": 1,
+      "sql_bytes": 8070,
+      "normalized_md5": "89bbbecf92a47a2acfa9ad9d686b8582"
+    }
+  ]
+}

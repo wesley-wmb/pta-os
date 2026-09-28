@@ -34,7 +34,7 @@ Seguidores e tags ligadas diretamente a demandas permanecem no escopo planejado 
 
 ## Modelo operacional de equipes
 
-O contrato em `features/team/operating-model.ts` preserva `tasks` como entidade central. A migration local de fundação, ainda não publicada no Supabase hospedado, adiciona:
+O contrato em `features/team/operating-model.ts` preserva `tasks` como entidade central. A migration de fundação, publicada no Supabase hospedado como `20260926213913`, adiciona:
 
 - `teams`, `team_members`, `job_functions` e `team_member_functions` para equipes e funções internas;
 - `task_dependencies`, `task_approval_requests` e `task_handoffs` para prontidão, gates e passagem de responsabilidade;
@@ -47,7 +47,7 @@ A fase seguinte permanece planejada e adicionará:
 - `task_followers` para pessoas informadas;
 - `workflow_run_id` e `workflow_step_id` em `tasks`.
 
-A fundação local usa FKs compostas com `workspace_id`, RLS forçada e RPCs versionadas. Nenhuma dessas novas estruturas está disponível na aplicação hospedada até a migration ser publicada e passar pelo smoke remoto.
+A fundação usa FKs compostas com `workspace_id`, RLS forçada e RPCs versionadas. Essas estruturas estão publicadas; as migrations de 28/09 acrescentam contexto interno e privacidade por participação na equipe. Consulte o [catálogo completo e roteiro de reprodução](database/README.md) para o estado conferido diretamente no banco.
 
 ## Recursos
 
@@ -136,7 +136,6 @@ Recursos usam links externos. Anexos de tarefas usam task_attachments e bucket p
 - Convites aceitos ou cancelados são terminais. Um token já consumido não reativa uma membership removida; a reativação por convite exige um novo token.
 
 - Colunas semanais desativadas mantêm redirect_lane_key dentro do workspace; delete_week_board_column transfere tarefas e conexões transacionalmente. O trigger posterior à sincronização redireciona escritas antigas e defaults para um destino ativo. Datas e projeto permanecem na mesma tarefa.
-
 
 ## Operação por equipes — 28/09/2026
 
